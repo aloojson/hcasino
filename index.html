@@ -1,0 +1,2868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#071310">
+<title>Hand Casino — Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg: #05070c; --panel: #101a2b; --panel-2: #17233a; --border: rgba(255,255,255,0.14);
+    --text: #f5f6f8; --muted: rgba(245,246,248,0.6); --accent: #f0c169; --accent-dim: rgba(240,193,105,0.18);
+    --accent-2: #4ade9a; --gold-ink: #241a0c;
+    --danger: #ff7a90; --danger-bg: rgba(255,122,144,0.16); --profit-bg: rgba(74,222,154,0.16);
+    --warn: #f0b862; --warn-bg: rgba(240,184,98,0.18);
+    --radius: 24px;
+    --shadow: 0 10px 36px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(255,255,255,0.04);
+    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --glass-blur: blur(22px) saturate(180%); --glass-blur-lg: blur(32px) saturate(190%); --glass-border: rgba(255,255,255,0.22);
+    --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
+    body::before, body::after, .liquid-orb{ animation: none !important; }
+  }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html{ -webkit-text-size-adjust: 100%; }
+  body{
+    margin:0; font-family: 'Inter','Segoe UI',Roboto,-apple-system,BlinkMacSystemFont,sans-serif;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0) 0 0/26px 26px,
+      radial-gradient(ellipse at top, #0c1526 0%, #05070c 65%);
+    color: var(--text); padding: 28px 20px 60px; -webkit-font-smoothing: antialiased; line-height: 1.4;
+    position: relative;
+  }
+  body::before, body::after, .liquid-orb{
+    content:''; position: fixed; border-radius: 50%; filter: blur(80px); z-index: -1; pointer-events: none; will-change: transform;
+  }
+  body::before{
+    width: 480px; height: 480px; top: -160px; left: -140px;
+    background: radial-gradient(circle, rgba(240,193,105,0.34), transparent 70%);
+    animation: liquidDrift1 22s ease-in-out infinite;
+  }
+  body::after{
+    width: 520px; height: 520px; bottom: -180px; right: -150px;
+    background: radial-gradient(circle, rgba(74,222,154,0.26), transparent 70%);
+    animation: liquidDrift2 26s ease-in-out infinite;
+  }
+  .liquid-orb{
+    width: 420px; height: 420px; top: 30%; left: 50%; transform: translate(-50%,-50%);
+    background: radial-gradient(circle, rgba(94,184,247,0.22), transparent 70%);
+    animation: liquidDrift3 30s ease-in-out infinite;
+  }
+  @keyframes liquidDrift1{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    33%{ transform: translate(90px,60px) scale(1.2); }
+    66%{ transform: translate(-30px,40px) scale(0.92); }
+  }
+  @keyframes liquidDrift2{
+    0%,100%{ transform: translate(0,0) scale(1); }
+    33%{ transform: translate(-70px,-50px) scale(1.15); }
+    66%{ transform: translate(40px,-20px) scale(0.9); }
+  }
+  @keyframes liquidDrift3{
+    0%,100%{ transform: translate(-50%,-50%) scale(1); }
+    50%{ transform: translate(-50%,-50%) translate(60px,-80px) scale(1.25); }
+  }
+  ::-webkit-scrollbar{ width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track{ background: transparent; }
+  ::-webkit-scrollbar-thumb{ background: rgba(240,193,105,0.28); border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover{ background: rgba(240,193,105,0.45); }
+  .wrap{ max-width: 1180px; margin: 0 auto; }
+
+  @keyframes fadeInUp{ from{ opacity:0; transform: translateY(18px) scale(0.98); } to{ opacity:1; transform: translateY(0) scale(1); } }
+  @keyframes fadeIn{ from{ opacity:0; } to{ opacity:1; } }
+  @keyframes popIn{ from{ opacity:0; transform: scale(0.9) translateY(8px); } to{ opacity:1; transform: scale(1) translateY(0); } }
+
+  .view{ display:none; }
+  .view.active{ display:block; animation: fadeInUp 0.5s var(--spring) both; }
+
+  header{
+    display:flex; align-items:center; justify-content:space-between; flex-wrap: wrap; gap: 16px; margin-bottom: 22px;
+    position: sticky; top: 12px; z-index: 40; padding: 12px 18px; border-radius: 28px;
+    background: rgba(16,26,43,0.5); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); box-shadow: var(--shadow);
+  }
+  .brand{ display:flex; align-items:center; gap: 14px; min-width: 0; cursor:pointer; }
+  .brand-icon{
+    width: 48px; height: 48px; border-radius: 16px; position: relative; overflow: hidden;
+    background: linear-gradient(150deg, #fbe3ab 0%, #f0c169 42%, #b8863f 100%);
+    display:flex; align-items:center; justify-content:center;
+    flex-shrink: 0; box-shadow: 0 4px 18px rgba(240,193,105,0.45), inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+  .brand-icon::after{
+    content:''; position:absolute; inset:0; background: linear-gradient(115deg, transparent 20%, rgba(255,255,255,0.6) 32%, transparent 44%);
+    transform: translateX(-120%); animation: brandShine 5s ease-in-out infinite;
+  }
+  @keyframes brandShine{ 0%,60%{ transform: translateX(-120%); } 85%,100%{ transform: translateX(120%); } }
+  .brand-icon svg{ width: 24px; height: 24px; position: relative; z-index: 1; }
+  .brand h1{ margin:0; font-family: var(--font-display); font-size: 22px; font-weight: 600; letter-spacing: 0.2px;
+    background: linear-gradient(120deg, #fdf0d5, var(--accent) 60%, #fdf0d5); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+  .brand p{ margin: 2px 0 0; color: var(--muted); font-size: 12.5px; font-weight: 500; letter-spacing: 0.2px; }
+  .header-right{ display:flex; align-items:center; gap: 10px; flex-wrap: wrap; }
+  .session-pill{
+    background: rgba(255,255,255,0.06); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); padding: 8px 16px;
+    border-radius: 999px; font-size: 12.5px; font-weight: 600; color: var(--text);
+    display:flex; align-items:center; gap: 8px; white-space: nowrap; box-shadow: var(--shadow);
+  }
+  .saved-indicator{ font-size: 12px; font-weight: 700; color: var(--accent-2); opacity: 0; transition: opacity 0.4s ease; white-space: nowrap; }
+
+  .notif-wrap{ position: relative; }
+  .icon-btn{
+    position: relative; background: rgba(255,255,255,0.06); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); color: var(--text);
+    border-radius: 14px; width: 42px; height: 42px; display:flex; align-items:center; justify-content:center;
+    font-size: 17px; padding: 0; box-shadow: var(--shadow); flex-shrink: 0; transition: transform 0.3s var(--spring), background 0.15s ease;
+  }
+  .icon-btn:hover{ background: rgba(255,255,255,0.11); transform: translateY(-2px) scale(1.04); }
+  .icon-btn:active{ transform: scale(0.92); }
+  .badge-dot{
+    position:absolute; top: -4px; right: -4px; background: var(--accent); color: var(--gold-ink);
+    font-size: 10px; font-weight: 800; min-width: 17px; height: 17px; border-radius: 999px;
+    display:flex; align-items:center; justify-content:center; padding: 0 3px; border: 2px solid var(--bg);
+    animation: dotPulse 2s ease-in-out infinite;
+  }
+  @keyframes dotPulse{
+    0%,100%{ box-shadow: 0 0 0 0 rgba(240,193,105,0.55); }
+    50%{ box-shadow: 0 0 0 6px rgba(240,193,105,0); }
+  }
+  .notif-panel{
+    position:absolute; top: calc(100% + 10px); right: 0; width: min(360px, calc(100vw - 24px)); max-width: 100%; max-height: min(420px, calc(100dvh - 150px));
+    overflow-y: auto; overscroll-behavior: contain; background: rgba(16,26,43,0.72); backdrop-filter: var(--glass-blur-lg); -webkit-backdrop-filter: var(--glass-blur-lg);
+    border: 1px solid var(--glass-border); border-radius: 20px;
+    box-shadow: var(--shadow); z-index: 50; display: none;
+  }
+  .notif-panel.open{ display: block; animation: popIn 0.3s var(--spring) both; }
+  .notif-panel-head{ padding: 12px 16px; border-bottom: 1px solid var(--border); display:flex; align-items:center; justify-content:space-between; font-size: 12.5px; font-weight: 700; }
+  .notif-panel-head button{ padding: 4px 12px; font-size: 11px; }
+  .notif-item{ padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 12.5px; }
+  .notif-item:last-child{ border-bottom: none; }
+  .notif-item.unread{ background: var(--accent-dim); }
+  .notif-item .msg{ color: var(--text); }
+  .notif-item .meta{ color: var(--muted); font-size: 11px; margin-top: 3px; }
+
+  .hero{ text-align:center; padding: 44px 20px 22px; }
+  .hero h2{ font-family: var(--font-display); font-weight: 600; font-size: 30px; margin: 0 0 10px; letter-spacing: 0.2px; }
+  .hero h2 .brand-gold{ background: linear-gradient(120deg, #fdf0d5, var(--accent) 55%, #fdf0d5); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; font-style: italic; }
+  .hero p{ color: var(--muted); font-size: 13.5px; margin: 0 0 30px; }
+  .hero-buttons{ display:flex; gap: 16px; justify-content:center; flex-wrap: wrap; }
+  .hero-card{
+    background: linear-gradient(165deg, rgba(255,255,255,0.09), transparent 45%), rgba(255,255,255,0.05);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 26px;
+    box-shadow: var(--shadow); padding: 28px 32px; width: 240px; cursor:pointer;
+    transition: border-color 0.2s ease, transform 0.35s var(--spring), box-shadow 0.35s var(--spring);
+    position: relative; overflow: hidden;
+    animation: fadeInUp 0.55s var(--spring) backwards;
+  }
+  .hero-buttons .hero-card:nth-child(1){ animation-delay: 0.05s; }
+  .hero-buttons .hero-card:nth-child(2){ animation-delay: 0.15s; }
+  .hero-card::before{
+    content:''; position:absolute; top:0; left:-60%; width:45%; height:100%;
+    background: linear-gradient(115deg, transparent, rgba(255,255,255,0.22), transparent);
+    transform: skewX(-20deg); transition: left 0.65s ease;
+  }
+  .hero-card:hover::before{ left: 130%; }
+  .hero-card:hover{ border-color: var(--accent); transform: translateY(-5px) scale(1.02); box-shadow: 0 16px 34px rgba(240,193,105,0.22), var(--shadow); }
+  .hero-card:active{ transform: translateY(-1px) scale(0.99); }
+  .hero-card .icon{ font-size: 30px; margin-bottom: 10px; }
+  .hero-card h3{ margin: 0 0 6px; font-size: 15px; font-family: var(--font-display); font-weight: 600; letter-spacing: 0.2px; }
+  .hero-card p{ margin:0; color: var(--muted); font-size: 12px; }
+
+  .login-box{
+    max-width: 420px; margin: 20px auto;
+    background: linear-gradient(165deg, rgba(255,255,255,0.09), transparent 40%), rgba(255,255,255,0.05);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border);
+    border-radius: 26px; box-shadow: var(--shadow); padding: 28px;
+    animation: fadeInUp 0.5s var(--spring) both;
+  }
+  .login-box h2{ margin: 0 0 6px; font-size: 19px; font-family: var(--font-display); font-weight: 600; }
+  .login-box .sub{ color: var(--muted); font-size: 12.5px; margin-bottom: 20px; }
+  .login-box .field{ display:flex; flex-direction:column; gap:6px; margin-bottom: 14px; }
+  .login-box label{ font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px; }
+  .login-box input{
+    background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text);
+    border-radius: 14px; padding: 12px 14px; font-size: 14px; font-family: inherit; transition: border-color 0.15s ease, background 0.15s ease;
+  }
+  .login-box input:focus{ outline: none; border-color: var(--accent); background: rgba(255,255,255,0.08); }
+  .login-box .actions{ display:flex; gap: 10px; margin-top: 18px; }
+  .login-box .actions button{ flex:1; }
+  .form-error{ background: var(--danger-bg); color: var(--danger); border-radius: 14px; padding: 8px 14px; font-size: 12px; margin-bottom: 14px; }
+
+  .summary-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 26px; }
+  .card{
+    background: linear-gradient(165deg, rgba(255,255,255,0.09), transparent 50%), rgba(255,255,255,0.05);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 22px; padding: 18px 20px; box-shadow: var(--shadow);
+    transition: transform 0.35s var(--spring), border-color 0.2s ease, box-shadow 0.35s var(--spring);
+    animation: fadeInUp 0.55s var(--spring) backwards;
+  }
+  .summary-grid .card:nth-child(1){ animation-delay: 0.03s; }
+  .summary-grid .card:nth-child(2){ animation-delay: 0.08s; }
+  .summary-grid .card:nth-child(3){ animation-delay: 0.13s; }
+  .summary-grid .card:nth-child(4){ animation-delay: 0.18s; }
+  .summary-grid .card:nth-child(5){ animation-delay: 0.23s; }
+  .card:hover{ transform: translateY(-4px) scale(1.015); border-color: rgba(255,255,255,0.32); box-shadow: 0 14px 30px rgba(0,0,0,0.35), var(--shadow); }
+  .card .label{ font-size: 11.5px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .card .value{ font-size: 25px; font-weight: 800; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+  .card.pos .value{ color: var(--accent-2); }
+  .card.neg .value{ color: var(--danger); }
+  .card.info .value{ color: var(--accent); }
+  .card.warn .value{ color: var(--warn); }
+
+  .panel{
+    background: linear-gradient(165deg, rgba(255,255,255,0.07), transparent 40%), rgba(255,255,255,0.04);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 26px; margin-bottom: 22px; overflow: hidden; box-shadow: var(--shadow);
+    animation: fadeInUp 0.6s var(--spring) backwards;
+  }
+  .panel-head{ display:flex; align-items:center; justify-content: space-between; padding: 18px 22px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px; }
+  .panel-head h2{ margin:0; font-size: 16px; font-weight: 600; font-family: var(--font-display); letter-spacing: 0.2px; }
+  .panel-head .sub{ font-size: 12px; color: var(--muted); margin-top: 3px; font-weight: 500; }
+
+  button{
+    font-family: inherit; cursor:pointer; border:none; border-radius: 999px; padding: 10px 20px;
+    font-size: 13px; font-weight: 600; transition: transform 0.3s var(--spring), opacity 0.15s ease, background 0.15s ease, box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active{ transform: scale(0.93); }
+  button:disabled{ opacity: 0.45; cursor: not-allowed; }
+  .btn-primary{
+    background: linear-gradient(135deg, #fbe3ab, var(--accent) 55%, #cc9a49); color: var(--gold-ink);
+    box-shadow: 0 4px 16px rgba(240,193,105,0.4), inset 0 1px 0 rgba(255,255,255,0.6); font-weight: 700; position: relative; overflow: hidden;
+  }
+  .btn-primary::before{
+    content:''; position:absolute; top:0; left:-75%; width:50%; height:100%;
+    background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: skewX(-20deg); transition: left 0.55s ease;
+  }
+  .btn-primary:hover::before{ left: 130%; }
+  .btn-primary:hover{ box-shadow: 0 6px 20px rgba(240,193,105,0.5), inset 0 1px 0 rgba(255,255,255,0.6); filter: brightness(1.05); }
+  .btn-secondary{ background: rgba(255,255,255,0.07); color: var(--text); border: 1px solid var(--glass-border); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .btn-secondary:hover{ background: rgba(255,255,255,0.13); }
+  .btn-success{ background: var(--profit-bg); color: var(--accent-2); padding: 7px 16px; font-size: 12px; }
+  .btn-success:hover{ background: rgba(74,222,154,0.26); }
+  .btn-danger{ background: var(--danger-bg); color: var(--danger); padding: 7px 16px; font-size: 12px; }
+  .btn-danger:hover{ background: rgba(255,122,144,0.26); }
+  .btn-warn{ background: var(--warn-bg); color: var(--warn); padding: 7px 16px; font-size: 12px; }
+  .btn-warn:hover{ background: rgba(240,184,98,0.26); }
+
+  table{ width: 100%; border-collapse: collapse; }
+  thead th{ text-align: left; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--muted); padding: 12px 22px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); font-weight: 700; }
+  tbody td{ padding: 12px 22px; border-bottom: 1px solid var(--border); font-size: 13.5px; vertical-align: middle; }
+  tbody tr:last-child td{ border-bottom: none; }
+  tbody tr{ transition: background 0.15s ease; }
+  tbody tr:hover{ background: rgba(255,255,255,0.035); }
+
+  .amount-cell{ font-weight: 700; font-variant-numeric: tabular-nums; }
+  .amount-cell.pos{ color: var(--accent-2); }
+  .amount-cell.neg{ color: var(--danger); }
+
+  .badge{ display:inline-block; padding: 3px 11px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.4px; }
+  .badge.win{ background: var(--profit-bg); color: var(--accent-2); }
+  .badge.loss{ background: var(--danger-bg); color: var(--danger); }
+  .badge.pending{ background: var(--warn-bg); color: var(--warn); }
+  .badge.accepted{ background: var(--profit-bg); color: var(--accent-2); }
+  .badge.rejected{ background: var(--danger-bg); color: var(--danger); }
+  .badge.active{ background: var(--profit-bg); color: var(--accent-2); }
+  .badge.suspended{ background: var(--danger-bg); color: var(--danger); }
+
+  select, input.inline-input{
+    background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--border);
+    border-radius: 12px; padding: 8px 12px; font-size: 13px; font-family: inherit; transition: border-color 0.15s ease;
+  }
+  select:focus, input.inline-input:focus{ outline: none; border-color: var(--accent); }
+
+  .row-actions{ text-align: right; white-space: nowrap; }
+
+  .avatar{
+    width: 40px; height: 40px; border-radius: 50%;
+    background: linear-gradient(135deg, #6ee0ac, #14956b);
+    color: #052c1e; box-shadow: inset 0 1px 0 rgba(255,255,255,0.4);
+    display:flex; align-items:center; justify-content:center; font-weight: 700; font-size: 15px; flex-shrink: 0;
+  }
+
+  .player-key-tag{
+    display:inline-block; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; color: var(--accent);
+    background: var(--accent-dim); border-radius: 999px; padding: 2px 9px; font-variant-numeric: tabular-nums;
+  }
+
+  .player-stats-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin: 16px 0; }
+  .profile-stat{ background: rgba(255,255,255,0.045); border: 1px solid var(--glass-border); border-radius: 14px; padding: 10px 13px; }
+  .profile-stat .label{ font-size: 10px; text-transform: uppercase; color: var(--muted); font-weight: 700; letter-spacing: 0.3px; }
+  .profile-stat .value{ font-size: 16px; font-weight: 800; margin-top: 3px; }
+  .profile-stat .value.pos{ color: var(--accent-2); }
+  .profile-stat .value.neg{ color: var(--danger); }
+
+  .linked-players-list{ display:flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .linked-chip{
+    display:flex; align-items:center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border);
+    border-radius: 999px; padding: 6px 13px; font-size: 12px; font-weight: 600;
+  }
+
+  .tabs{ display:flex; gap: 6px; border-bottom: 1px solid var(--border); margin-bottom: 14px; overflow-x: auto; padding-bottom: 2px; }
+  .tab-btn{ background: none; border: none; color: var(--muted); font-size: 12.5px; font-weight: 700; padding: 8px 16px; border-radius: 999px; white-space: nowrap; transition: background 0.3s var(--spring), color 0.2s ease; }
+  .tab-btn.active{ color: var(--gold-ink); background: var(--accent); }
+  .tab-panel{ display:none; }
+  .tab-panel.active{ display:block; animation: fadeIn 0.3s ease; }
+
+  .req-card{ background: rgba(255,255,255,0.045); border: 1px solid var(--glass-border); border-radius: 16px; padding: 12px 15px; margin-bottom: 10px; font-size: 12.5px; transition: transform 0.2s var(--spring), background 0.15s ease; }
+  .req-card:hover{ background: rgba(255,255,255,0.07); transform: translateY(-2px); }
+  .req-card .req-top{ display:flex; justify-content:space-between; align-items:flex-start; gap: 8px; margin-bottom: 6px; }
+  .req-card .req-amount{ font-weight: 800; font-variant-numeric: tabular-nums; }
+  .req-card .req-meta{ color: var(--muted); font-size: 11px; margin-top: 4px; }
+  .req-card .req-actions{ display:flex; gap: 8px; margin-top: 10px; }
+  .req-card .req-reason{ margin-top: 6px; font-size: 11.5px; color: var(--muted); font-style: italic; }
+
+  .empty-state{ padding: 30px 20px; text-align: center; color: var(--muted); font-size: 13px; }
+
+  .leaderboard-wrap{ max-width: 720px; margin: 0 auto 20px; }
+  .rank-cell{ font-weight: 800; color: var(--muted); width: 34px; }
+  .rank-cell.top1{ color: var(--accent); }
+  .rank-cell.top2{ color: #cfd6e0; }
+  .rank-cell.top3{ color: #d99257; }
+  .lb-player{ display:flex; align-items:center; gap: 10px; }
+  .lb-player .avatar{ width: 32px; height: 32px; font-size: 12px; }
+  .lb-player-name{ font-weight: 700; }
+  .lb-player-role{ color: var(--muted); font-size: 11.5px; }
+
+  .chart-svg{ width:100%; height:auto; display:block; overflow: visible; }
+  .chart-svg text{ font-family: 'Inter','Segoe UI',Roboto,-apple-system,BlinkMacSystemFont,sans-serif; }
+
+  .chart-wrap{ position: relative; }
+  .chart-overlay{ fill: transparent; cursor: crosshair; touch-action: none; }
+  .chart-crosshair line{ stroke: var(--accent); stroke-width: 1; stroke-dasharray: 3,3; opacity: 0.55; }
+  .chart-hover-dot{ stroke: var(--panel); stroke-width: 2; filter: drop-shadow(0 0 6px rgba(240,193,105,0.6)); }
+  .chart-dot{ transition: r 0.1s ease; }
+  .chart-line{ transition: stroke-dashoffset 1s var(--spring); }
+  .chart-area{ transition: opacity 0.6s ease 0.2s; }
+  .chart-tooltip{
+    position: absolute; pointer-events: none; opacity: 0; transition: opacity 0.15s ease, transform 0.2s var(--spring);
+    background: rgba(16,26,43,0.85); backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 14px;
+    padding: 9px 13px; font-size: 11.5px; min-width: 168px; box-shadow: var(--shadow); z-index: 6;
+    transform: translateY(-2px);
+  }
+  .chart-tooltip .ct-title{ font-weight: 700; font-size: 12.5px; margin-bottom: 1px; }
+  .chart-tooltip .ct-date{ color: var(--muted); font-size: 10.5px; margin-bottom: 7px; }
+  .chart-tooltip .ct-row{ display:flex; justify-content:space-between; gap: 14px; padding: 1px 0; }
+  .chart-tooltip .ct-row span{ color: var(--muted); }
+  .chart-tooltip .ct-row b{ font-variant-numeric: tabular-nums; }
+  .ct-pos{ color: var(--accent-2); }
+  .ct-neg{ color: var(--danger); }
+
+  .chart-range{ display:flex; gap: 6px; }
+  .chart-range button{
+    background: rgba(255,255,255,0.05); color: var(--muted); border: 1px solid var(--glass-border);
+    padding: 5px 13px; font-size: 11.5px; font-weight: 700; border-radius: 999px;
+  }
+  .chart-range button.active{ background: var(--accent); color: var(--gold-ink); border-color: transparent; }
+
+  .badges-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; padding: 18px 22px; }
+  .badge-card{
+    background: linear-gradient(165deg, rgba(255,255,255,0.08), transparent 50%), rgba(255,255,255,0.045);
+    border: 1px solid var(--glass-border); border-radius: 20px; padding: 18px 14px; text-align: center;
+    position: relative; overflow: hidden;
+    transition: transform 0.3s var(--spring), opacity 0.15s ease, border-color 0.2s ease;
+    animation: fadeInUp 0.5s var(--spring) backwards;
+  }
+  .badges-grid .badge-card:nth-child(1){ animation-delay: 0.02s; }
+  .badges-grid .badge-card:nth-child(2){ animation-delay: 0.06s; }
+  .badges-grid .badge-card:nth-child(3){ animation-delay: 0.10s; }
+  .badges-grid .badge-card:nth-child(4){ animation-delay: 0.14s; }
+  .badges-grid .badge-card:nth-child(5){ animation-delay: 0.18s; }
+  .badges-grid .badge-card:nth-child(6){ animation-delay: 0.22s; }
+  .badges-grid .badge-card:nth-child(7){ animation-delay: 0.26s; }
+  .badges-grid .badge-card:nth-child(8){ animation-delay: 0.30s; }
+  .badges-grid .badge-card:nth-child(9){ animation-delay: 0.34s; }
+  .badge-card.locked{ opacity: 0.4; filter: grayscale(0.75); }
+  .badge-card:not(.locked)::before{
+    content:''; position:absolute; top:0; left:-60%; width:45%; height:100%;
+    background: linear-gradient(115deg, transparent, rgba(255,255,255,0.2), transparent);
+    transform: skewX(-20deg); transition: left 0.6s ease;
+  }
+  .badge-card:not(.locked):hover::before{ left: 130%; }
+  .badge-card:not(.locked){ animation: fadeInUp 0.5s var(--spring) backwards, badgeGlow 3.2s ease-in-out infinite; }
+  @keyframes badgeGlow{
+    0%,100%{ box-shadow: none; }
+    50%{ box-shadow: 0 0 22px rgba(240,193,105,0.28); }
+  }
+  .badge-card:not(.locked):hover{ transform: translateY(-4px) scale(1.03); border-color: rgba(240,193,105,0.5); }
+  .badge-card .badge-icon{ font-size: 32px; margin-bottom: 8px; line-height: 1; }
+  .badge-card .badge-title{ font-weight: 700; font-size: 13.5px; margin-bottom: 6px; font-family: var(--font-display); }
+  .badge-card .badge-tier{
+    display: inline-block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px;
+    padding: 2px 10px; border-radius: 999px; margin-bottom: 9px;
+  }
+  .badge-card .badge-desc{ font-size: 11.5px; color: var(--muted); line-height: 1.45; }
+  .badge-card .badge-progress{ font-size: 10.5px; color: var(--accent); margin-top: 7px; font-weight: 600; }
+
+  .heatmap-scroll{ overflow-x: auto; padding: 4px 22px 6px; }
+  .heatmap-inner{ display: inline-block; }
+  .heatmap-months{ display:grid; grid-auto-flow: column; margin-bottom: 5px; }
+  .heatmap-month-label{ width: 16px; font-size: 10px; color: var(--muted); white-space: nowrap; overflow: visible; }
+  .heatmap-grid{ display:grid; grid-auto-flow: column; grid-template-rows: repeat(7, 13px); gap: 3px; }
+  .heatmap-cell{ width: 13px; height: 13px; border-radius: 4px; background: rgba(255,255,255,0.06); cursor: pointer; transition: outline 0.1s ease, transform 0.15s ease; }
+  .heatmap-cell:hover{ outline: 1.5px solid var(--accent); outline-offset: 1px; transform: scale(1.15); }
+  .heatmap-legend{ display:flex; align-items:center; gap: 5px; font-size: 10.5px; color: var(--muted); padding: 10px 22px 4px; flex-wrap: wrap; }
+  .heatmap-legend .swatch{ width: 11px; height: 11px; border-radius: 4px; display:inline-block; }
+  #pdHeatmapDetail{ font-size: 12px; color: var(--text); padding: 2px 22px 16px; min-height: 18px; font-weight: 500; }
+  #pdHeatmapDetail .muted{ color: var(--muted); font-weight: 400; }
+
+  .week-countdown-wrap{ display:flex; justify-content:center; padding: 0 20px 30px; }
+  .week-countdown-card{
+    background: linear-gradient(165deg, rgba(255,255,255,0.09), transparent 50%), rgba(255,255,255,0.05);
+    backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-border); border-radius: 26px; box-shadow: var(--shadow);
+    padding: 22px 28px; text-align: center; max-width: 420px; width: 100%;
+    animation: fadeInUp 0.55s var(--spring) both;
+  }
+  .wc-label{ font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); font-weight: 700; margin-bottom: 16px; }
+  .wc-timer{ display:flex; align-items: flex-start; justify-content: center; gap: 8px; }
+  .wc-unit{ display:flex; flex-direction: column; align-items: center; min-width: 50px; }
+  .wc-unit span{
+    font-family: var(--font-display); font-size: 30px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+    background: linear-gradient(120deg, #fdf0d5, var(--accent) 55%, #fdf0d5); -webkit-background-clip: text; background-clip: text;
+    color: transparent; -webkit-text-fill-color: transparent;
+  }
+  .wc-unit:last-child span{ animation: secondPulse 1s ease-in-out infinite; }
+  @keyframes secondPulse{ 0%,100%{ opacity: 1; } 50%{ opacity: 0.5; } }
+  .wc-unit small{ font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 5px; font-weight: 600; }
+  .wc-sep{ font-family: var(--font-display); font-size: 26px; font-weight: 700; color: var(--border); padding-top: 2px; }
+  .wc-range{ margin-top: 15px; font-size: 12px; color: var(--muted); }
+  @media (max-width: 420px){
+    .week-countdown-card{ padding: 18px 14px; }
+    .wc-unit{ min-width: 42px; }
+    .wc-unit span{ font-size: 24px; }
+    .wc-sep{ font-size: 20px; }
+  }
+
+  .collapsible-head{
+    display:flex; align-items:center; justify-content:space-between; cursor:pointer;
+    -webkit-user-select:none; user-select:none; gap: 10px;
+  }
+  .collapsible-head .chevron{
+    display:inline-flex; align-items:center; justify-content:center; width: 22px; height: 22px;
+    color: var(--muted); transition: transform 0.3s var(--spring); flex-shrink: 0; font-size: 12px;
+  }
+  .collapsible.collapsed .chevron{ transform: rotate(-90deg); }
+  .collapsible-body{
+    overflow: hidden; max-height: 2000px; transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.25s ease;
+    opacity: 1; margin-top: 10px;
+  }
+  .collapsible.collapsed .collapsible-body{ max-height: 0; opacity: 0; margin-top: 0; }
+  footer{ text-align: center; color: var(--muted); font-size: 12px; margin-top: 30px; }
+
+  .admin-form-row{ display:flex; gap: 10px; padding: 18px 22px; flex-wrap: wrap; align-items:end; }
+  .admin-form-row .field{ display:flex; flex-direction:column; gap:6px; flex: 1; min-width: 140px; }
+  .admin-form-row label{ font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; font-weight: 700; }
+
+  .modal-overlay{ position: fixed; inset: 0; background: rgba(2,4,8,0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); display:none; align-items:center; justify-content:center; z-index: 100; padding: 20px; }
+  .modal-overlay.open{ display:flex; animation: fadeIn 0.25s ease; }
+  .modal{
+    background: linear-gradient(165deg, rgba(255,255,255,0.09), transparent 45%), rgba(16,26,43,0.78);
+    backdrop-filter: var(--glass-blur-lg); -webkit-backdrop-filter: var(--glass-blur-lg);
+    border: 1px solid var(--glass-border); border-radius: 26px; box-shadow: var(--shadow);
+    width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+    animation: popIn 0.35s var(--spring) both;
+  }
+  .modal-head{ display:flex; align-items:flex-start; justify-content:space-between; padding: 18px 22px; border-bottom: 1px solid var(--border); gap: 10px; }
+  .modal-head h3{ margin: 0; font-size: 17px; font-family: var(--font-display); font-weight: 600; }
+  .modal-close{ background: none; border: none; color: var(--muted); font-size: 18px; padding: 2px 6px; }
+  .modal-close:hover{ color: var(--text); }
+  .modal-body{ padding: 20px 22px; }
+  .modal-foot{ padding: 14px 22px; border-top: 1px solid var(--border); display:flex; justify-content:flex-end; gap: 10px; }
+
+  .key-reveal-box{
+    background: rgba(255,255,255,0.05); border: 1px dashed var(--accent); border-radius: 16px;
+    padding: 16px; text-align:center; margin-bottom: 12px;
+  }
+  .key-reveal-box .key{ font-size: 22px; font-weight: 800; color: var(--accent); letter-spacing: 1px; font-variant-numeric: tabular-nums; }
+
+  .config-warning{
+    background: rgba(255,90,110,0.14); border: 1px solid rgba(255,122,144,0.35); color: #ffc2cd; border-radius: 16px;
+    padding: 12px 16px; font-size: 12.5px; font-weight: 500; margin-bottom: 20px; line-height: 1.6;
+  }
+  .config-warning code{ background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 4px; font-size: 11.5px; }
+
+  .warn-notice{
+    background: var(--warn-bg); border: 1px solid rgba(240,184,98,0.4); color: var(--warn);
+    border-radius: 16px; padding: 12px 16px; font-size: 12px; font-weight: 500; line-height: 1.6;
+  }
+  .warn-notice code{ background: rgba(0,0,0,0.25); padding: 1px 6px; border-radius: 4px; font-size: 11px; color: var(--text); }
+
+  @media (max-width: 640px){
+    body{ padding: 18px 12px 40px; }
+    header{ margin-bottom: 16px; top: 6px; padding: 12px; border-radius: 24px; align-items: flex-start; }
+    .brand h1{ font-size: 18px; }
+    .brand p{ font-size: 11.5px; }
+    .brand-icon{ width: 42px; height: 42px; font-size: 20px; }
+    .header-right{ width: 100%; justify-content: space-between; }
+    .hero-buttons{ flex-direction: column; align-items:stretch; }
+    .hero-card{ width: 100%; }
+    .login-box{ padding: 20px; }
+    .summary-grid{ grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+    .card{ padding: 14px 14px; }
+    .card .value{ font-size: 20px; }
+    .card .label{ font-size: 10.5px; }
+    .panel-head{ padding: 14px 16px; }
+    .panel-head button{ width: 100%; }
+    .admin-form-row{ flex-direction: column; align-items: stretch; padding: 14px 16px; }
+    thead{ display:none; }
+    table, tbody, tr, td{ display:block; width: 100%; }
+    tbody tr{ padding: 12px 14px; border-bottom: 1px solid var(--border); }
+    tbody td{ border:none; padding: 7px 0; display:flex; justify-content:space-between; align-items: center; gap:10px; }
+    tbody td::before{ content: attr(data-label); color: var(--muted); font-size: 10.5px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.4px; flex-shrink:0; }
+    .row-actions{ justify-content: flex-end; padding-top: 10px; }
+    .notif-wrap{ position: static; }
+    .notif-panel{ position: fixed; top: auto; right: 12px; left: 12px; width: auto; max-width: none; max-height: min(60dvh, 420px); margin-top: 8px; }
+    footer{ font-size: 11px; padding: 0 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="liquid-orb" aria-hidden="true"></div>
+<div class="wrap">
+
+  <header>
+    <div class="brand" onclick="goLanding()">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2C7.2 7.1 2.6 10.6 2.6 14.6a4.9 4.9 0 0 0 8.9 2.9c-.3 2.3-1.4 3.8-3.4 5H16c-2-1.2-3.1-2.7-3.4-5a4.9 4.9 0 0 0 8.9-2.9C21.5 10.6 16.9 7.1 12 2Z" fill="#211609"/></svg>
+      </div>
+      <div>
+        <h1>Hand Casino</h1>
+        <p>Daily Profit &amp; Loss Tracker</p>
+      </div>
+    </div>
+    <div class="header-right" id="headerRight"></div>
+  </header>
+
+  <div class="config-warning" id="sharedModeWarning" style="display:none;">
+    ⚠️ Supabase is not configured yet. Open the page's source code and search for
+    <code>SHARED STORAGE SETUP</code> for the full setup guide and SQL to run — this app cannot function without it.
+  </div>
+
+  <!-- ============ LANDING ============ -->
+  <div class="view" id="viewLanding">
+    <div class="hero">
+      <h2>Welcome to <span class="brand-gold">Hand Casino</span></h2>
+      <p>Log in as a player to manage your matches, or as an admin to run the club.</p>
+      <div class="hero-buttons">
+        <div class="hero-card" onclick="goPlayerLogin()">
+          <div class="icon">🔑</div>
+          <h3>Player Login</h3>
+          <p>Enter your permanent Player Key to view your profile and respond to match requests.</p>
+        </div>
+        <div class="hero-card" onclick="goAdminLogin()">
+          <div class="icon">🛠️</div>
+          <h3>Admin Login</h3>
+          <p>Create players, log matches, manage links, suspend accounts, and reset data.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="week-countdown-wrap">
+      <div class="week-countdown-card">
+        <div class="wc-label">⏳ Current Playing Week Ends In</div>
+        <div class="wc-timer">
+          <div class="wc-unit"><span id="lwcDays">00</span><small>Days</small></div>
+          <div class="wc-sep">:</div>
+          <div class="wc-unit"><span id="lwcHours">00</span><small>Hours</small></div>
+          <div class="wc-sep">:</div>
+          <div class="wc-unit"><span id="lwcMinutes">00</span><small>Min</small></div>
+          <div class="wc-sep">:</div>
+          <div class="wc-unit"><span id="lwcSeconds">00</span><small>Sec</small></div>
+        </div>
+        <div class="wc-range" id="lwcRange">—</div>
+      </div>
+    </div>
+
+    <div class="leaderboard-wrap">
+      <div class="panel">
+        <div class="panel-head">
+          <div><h2>🏆 Leaderboard</h2><div class="sub">Net balance across all confirmed matches, club-wide.</div></div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Profit</th>
+                <th>Loss</th>
+                <th>Net Balance</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state" id="leaderboardEmpty" style="display:none;">No players yet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PLAYER LOGIN ============ -->
+  <div class="view" id="viewPlayerLogin">
+    <div class="login-box">
+      <h2>🔑 Player Login</h2>
+      <div class="sub">Enter the Player Key your admin gave you. It's permanent and works like a password.</div>
+      <div id="playerLoginError"></div>
+      <div class="field">
+        <label>Player Key</label>
+        <input type="text" id="playerKeyInput" placeholder="HC-483920" onkeydown="if(event.key==='Enter') playerLogin();">
+      </div>
+      <div class="actions">
+        <button class="btn-secondary" onclick="goLanding()">Back</button>
+        <button class="btn-primary" onclick="playerLogin()">Log In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN LOGIN ============ -->
+  <div class="view" id="viewAdminLogin">
+    <div class="login-box">
+      <h2>🛠️ Admin Login</h2>
+      <div class="sub">Sign in with your admin email and password.</div>
+      <div id="adminLoginError"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="adminEmailInput" placeholder="admin@example.com">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="adminPasswordInput" placeholder="••••••••" onkeydown="if(event.key==='Enter') adminLogin();">
+      </div>
+      <div class="actions">
+        <button class="btn-secondary" onclick="goLanding()">Back</button>
+        <button class="btn-primary" onclick="adminLogin()">Log In</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PLAYER DASHBOARD ============ -->
+  <div class="view" id="viewPlayerDashboard">
+    <div class="summary-grid">
+      <div class="card info"><div class="label">Player Key</div><div class="value" id="pdKey" style="font-size:18px;">HC-000000</div></div>
+      <div class="card pos"><div class="label">Total Profit</div><div class="value" id="pdProfit">₹0</div></div>
+      <div class="card neg"><div class="label">Total Loss</div><div class="value" id="pdLoss">₹0</div></div>
+      <div class="card" id="pdNetCard"><div class="label">Net Balance</div><div class="value" id="pdNet">₹0</div></div>
+    </div>
+
+    <div class="panel" id="pdThisWeekPanel">
+      <div class="panel-head">
+        <div><h2>📆 This Week</h2><div class="sub" id="pdWeekRange">—</div></div>
+      </div>
+      <div class="summary-grid" style="padding:18px 20px 6px; margin-bottom:0;">
+        <div class="card pos"><div class="label">Profit</div><div class="value" id="pdWeekProfit">₹0</div></div>
+        <div class="card neg"><div class="label">Loss</div><div class="value" id="pdWeekLoss">₹0</div></div>
+        <div class="card"><div class="label">Net</div><div class="value" id="pdWeekNet">₹0</div></div>
+        <div class="card info"><div class="label">Matches</div><div class="value" id="pdWeekMatches">0</div></div>
+      </div>
+      <div class="warn-notice" id="pdWeekConfigNote" style="display:none; margin:0 20px 18px;">
+        Ask your admin to run the extra setup SQL for the playing-week feature — until then this card runs on a temporary 7-day week that resets locally and won't sync across devices.
+      </div>
+    </div>
+
+    <div class="panel" id="pdNetChartPanel">
+      <div class="panel-head">
+        <div><h2>📈 Net Balance Over Time</h2><div class="sub">Running total after each confirmed match — hover or tap a point for details.</div></div>
+        <div class="chart-range" id="pdChartRange">
+          <button type="button" class="active" data-range="all" onclick="setNetChartRange('all')">All</button>
+          <button type="button" data-range="20" onclick="setNetChartRange('20')">Last 20</button>
+          <button type="button" data-range="10" onclick="setNetChartRange('10')">Last 10</button>
+        </div>
+      </div>
+      <div style="padding:18px 20px;">
+        <div class="chart-wrap" id="pdNetChartContainer"></div>
+        <div class="empty-state" id="pdNetChartEmpty" style="display:none;">No confirmed matches yet — your chart will appear after your first result.</div>
+      </div>
+    </div>
+
+    <div class="panel" id="pdAchievementsPanel">
+      <div class="panel-head">
+        <div><h2>🏅 Achievements</h2><div class="sub" id="pdAchievementsSub">Resets every playing week — earn them again each cycle.</div></div>
+      </div>
+      <div class="badges-grid" id="pdBadgesGrid"></div>
+    </div>
+
+    <div class="panel" id="pdHeatmapPanel">
+      <div class="panel-head">
+        <div><h2>📅 Activity Calendar</h2><div class="sub">Green days you were up, red days you were down — darker means bigger.</div></div>
+      </div>
+      <div class="heatmap-scroll">
+        <div class="heatmap-inner" id="pdHeatmapInner"></div>
+      </div>
+      <div class="empty-state" id="pdHeatmapEmpty" style="display:none;">No confirmed matches yet — your activity will show up here.</div>
+      <div id="pdHeatmapDetail"><span class="muted">Tap any day to see what happened.</span></div>
+      <div class="heatmap-legend" id="pdHeatmapLegend"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Log a Match</h2><div class="sub">Claim a win against another player — it goes to them as a pending confirmation, just like an admin-logged match.</div></div>
+      </div>
+      <div class="admin-form-row">
+        <div class="field"><label>You Beat</label><select id="pdOpponentSelect"></select></div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="pdMatchAmountInput" min="1" placeholder="500"></div>
+        <div class="field"><button class="btn-primary" onclick="playerLogMatch()">Send for Confirmation</button></div>
+      </div>
+      <div class="admin-form-row" style="padding-top:0;">
+        <div class="field" style="flex:1;"><label>Notes (optional)</label><input type="text" id="pdMatchNotesInput" class="inline-input" placeholder="e.g. Best of 3"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2 id="pdName">Player Name</h2><div class="sub">Matches: <span id="pdMatches">0</span> · Pending: <span id="pdPending">0</span> · Completed: <span id="pdCompleted">0</span></div></div>
+      </div>
+      <div style="padding:18px 20px;">
+        <h4 style="margin:0 0 8px; font-size:13px;">Linked Players</h4>
+        <div class="linked-players-list" id="pdLinkedPlayers"></div>
+
+        <div class="collapsible" id="pdHeadToHeadCollapsible">
+          <h4 style="margin:18px 0 8px; font-size:13px;" class="collapsible-head" onclick="toggleCollapsible('pdHeadToHeadCollapsible')">
+            <span>Head-to-Head</span>
+            <span class="chevron">▾</span>
+          </h4>
+          <div class="collapsible-body">
+            <div class="sub" style="margin-bottom:10px;">Your net balance broken down by opponent.</div>
+            <div style="overflow-x:auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Opponent</th>
+                    <th>Matches</th>
+                    <th>Profit</th>
+                    <th>Loss</th>
+                    <th>Net Balance</th>
+                  </tr>
+                </thead>
+                <tbody id="pdHeadToHeadBody"></tbody>
+              </table>
+            </div>
+            <div class="empty-state" id="pdHeadToHeadEmpty" style="display:none;">No matches against anyone yet.</div>
+          </div>
+        </div>
+
+        <div class="tabs" style="margin-top:18px;">
+          <button class="tab-btn active" data-tab="pending" onclick="switchPdTab('pending')">Pending</button>
+          <button class="tab-btn" data-tab="accepted" onclick="switchPdTab('accepted')">Accepted</button>
+          <button class="tab-btn" data-tab="rejected" onclick="switchPdTab('rejected')">Rejected</button>
+          <button class="tab-btn" data-tab="history" onclick="switchPdTab('history')">History</button>
+        </div>
+        <div class="tab-panel active" id="pd-tab-pending"></div>
+        <div class="tab-panel" id="pd-tab-accepted"></div>
+        <div class="tab-panel" id="pd-tab-rejected"></div>
+        <div class="tab-panel" id="pd-tab-history"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADMIN DASHBOARD ============ -->
+  <div class="view" id="viewAdminDashboard">
+    <div class="summary-grid">
+      <div class="card info"><div class="label">Total Players</div><div class="value" id="adTotalPlayers">0</div></div>
+      <div class="card pos"><div class="label">Active Players</div><div class="value" id="adActivePlayers">0</div></div>
+      <div class="card neg"><div class="label">Suspended</div><div class="value" id="adSuspendedPlayers">0</div></div>
+      <div class="card"><div class="label">Confirmed Matches</div><div class="value" id="adTotalMatches">0</div></div>
+      <div class="card warn"><div class="label">Pending Requests</div><div class="value" id="adPendingCount">0</div></div>
+    </div>
+
+    <div class="panel" id="adPendingPanel">
+      <div class="panel-head">
+        <div><h2>⏳ Pending Match Requests</h2><div class="sub">Claimed results waiting on the other player to accept or reject.</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Claimed Winner</th><th>Awaiting</th><th>Amount</th><th>Notes</th><th>Requested</th></tr></thead>
+        <tbody id="adPendingBody"></tbody>
+      </table>
+      <div class="empty-state" id="adPendingEmpty" style="display:none;">No pending requests right now — everything's been confirmed or rejected.</div>
+    </div>
+
+    <div class="panel" id="adWeekSettingsPanel">
+      <div class="panel-head">
+        <div><h2>⚙️ Playing Week Settings</h2><div class="sub" id="adWeekCurrentInfo">Controls the "This Week" card and weekly achievement badges for every player.</div></div>
+      </div>
+      <div class="admin-form-row">
+        <div class="field">
+          <label>Days per playing week</label>
+          <input type="number" id="adWeekLengthInput" class="inline-input" min="1" max="60" placeholder="7">
+        </div>
+        <div class="field">
+          <button class="btn-primary" onclick="adminSaveWeekLength()">Save &amp; Start New Week Now</button>
+        </div>
+      </div>
+      <div style="padding:0 20px 18px; font-size:11.5px; color:var(--muted); line-height:1.6;">
+        Saving starts a brand new cycle immediately using the new length. Lifetime profit/loss, the net-balance chart, and every player's activity calendar are never affected — only the "This Week" card and this week's achievement badges reset.
+      </div>
+      <div class="admin-form-row" style="border-top:1px solid var(--border); padding-top:18px;">
+        <div class="field">
+          <label>Ending the week early</label>
+          <button class="btn-warn" onclick="adminForceEndWeek()">⏭️ Force End Current Week Now</button>
+        </div>
+      </div>
+      <div style="padding:0 20px 18px; font-size:11.5px; color:var(--muted); line-height:1.6;">
+        Ends the current week immediately — without waiting for it to run its course — and starts a fresh one today, keeping the same week length. Use this if the club's schedule changes mid-week. Same safety guarantee: lifetime totals and the activity calendar are untouched, only "This Week" and this week's achievements reset.
+      </div>
+      <div class="warn-notice" id="adWeekConfigWarning" style="display:none; margin:0 20px 18px;">
+        This feature needs one extra one-time step: run the <code>app_settings</code> SQL block from the setup instructions in your Supabase SQL Editor. Until then, this setting can't be saved or shared across devices.
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Create Player</h2><div class="sub">Only admins can create player profiles. A permanent Player Key is generated automatically.</div></div>
+      </div>
+      <div class="admin-form-row">
+        <div class="field"><label>Name</label><input type="text" id="adNewPlayerName" class="inline-input" placeholder="Player name"></div>
+        <div class="field"><label>Role</label><input type="text" id="adNewPlayerRole" class="inline-input" placeholder="e.g. Batsman"></div>
+        <div class="field"><button class="btn-primary" onclick="adminCreatePlayer()">+ Create Player</button></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Log a Match</h2><div class="sub">Creates a pending confirmation — balances update only once the loser accepts.</div></div>
+      </div>
+      <div class="admin-form-row">
+        <div class="field"><label>Winner</label><select id="adMatchWinnerSelect"></select></div>
+        <div class="field"><label>Loser</label><select id="adMatchLoserSelect"></select></div>
+        <div class="field"><label>Amount (₹)</label><input type="number" id="adMatchAmountInput" min="1" placeholder="500"></div>
+        <div class="field"><button class="btn-primary" onclick="adminLogMatch()">Send for Confirmation</button></div>
+      </div>
+      <div class="admin-form-row" style="padding-top:0;">
+        <div class="field" style="flex:1;"><label>Notes (optional)</label><input type="text" id="adMatchNotesInput" class="inline-input" placeholder="e.g. Best of 3"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Manage Players</h2><div class="sub">Suspend blocks a player from accepting/rejecting requests. Deleting is blocked once they have confirmed history.</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Name / Role</th><th>Player Key</th><th>Status</th><th>Matches</th><th></th></tr></thead>
+        <tbody id="adPlayersBody"></tbody>
+      </table>
+      <div class="empty-state" id="adPlayersEmpty" style="display:none;">No players yet — create one above.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Manage Player Links</h2><div class="sub">Linked players are notified about each other's match confirmations.</div></div>
+      </div>
+      <div class="admin-form-row">
+        <div class="field"><label>Player A</label><select id="adLinkPlayerA"></select></div>
+        <div class="field"><label>Player B</label><select id="adLinkPlayerB"></select></div>
+        <div class="field"><button class="btn-secondary" onclick="adminCreateLink()">+ Link Them</button></div>
+      </div>
+      <table>
+        <thead><tr><th>Player A</th><th>Player B</th><th></th></tr></thead>
+        <tbody id="adLinksBody"></tbody>
+      </table>
+      <div class="empty-state" id="adLinksEmpty" style="display:none;">No links yet.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Confirmed Transactions</h2><div class="sub">Permanent record — cannot be edited or deleted, even by an admin.</div></div>
+      </div>
+      <table>
+        <thead><tr><th>Txn</th><th>Winner</th><th>Loser</th><th>Amount</th><th>Logged</th><th>Confirmed</th></tr></thead>
+        <tbody id="adTxnBody"></tbody>
+      </table>
+      <div class="empty-state" id="adTxnEmpty" style="display:none;">No confirmed transactions yet.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Danger Zone</h2><div class="sub">Clears every player's profit/loss — all transactions, match requests, notifications, and links. Player profiles (names, keys, roles) are kept.</div></div>
+        <button class="btn-danger" onclick="adminResetData()">Reset Club Data</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>Hand Casino Manager · Play smart, track every hand 🎲</footer>
+</div>
+
+<div class="modal-overlay" id="rejectModalOverlay" onclick="if(event.target===this) closeRejectModal();">
+  <div class="modal">
+    <div class="modal-head"><h3>Reject Match Claim</h3><button class="modal-close" onclick="closeRejectModal()">✕</button></div>
+    <div class="modal-body">
+      <div class="field" style="display:flex; flex-direction:column; gap:6px;">
+        <label style="font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700;">Reason (optional)</label>
+        <input type="text" id="rejectReasonInput" class="inline-input" placeholder="e.g. Score was disputed">
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeRejectModal()">Cancel</button>
+      <button class="btn-danger" onclick="confirmReject()">Confirm Rejection</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="keyRevealOverlay" onclick="if(event.target===this) closeKeyReveal();">
+  <div class="modal">
+    <div class="modal-head"><h3>Player Created</h3><button class="modal-close" onclick="closeKeyReveal()">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px; color:var(--muted); margin-top:0;">Give this key to the player — it's their permanent login. You can always find it again later in the Manage Players table below.</p>
+      <div class="key-reveal-box">
+        <div class="key" id="revealedKeyText">HC-000000</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-primary" onclick="closeKeyReveal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="incomingRequestOverlay" onclick="if(event.target===this) closeIncomingRequestPopup();">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>⚡ Match Requests Waiting For You</h3>
+      <button class="modal-close" onclick="closeIncomingRequestPopup()">✕</button>
+    </div>
+    <div class="modal-body" id="incomingRequestList"></div>
+    <div class="modal-foot">
+      <button class="btn-secondary" onclick="closeIncomingRequestPopup()">Review Later</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // SHARED STORAGE SETUP (Supabase) — REQUIRED
+  // ------------------------------------------------------------
+  // This app has two real roles:
+  //   • ADMIN — authenticates with Supabase Auth (email + password).
+  //     Only admins can create players, log matches, manage links,
+  //     suspend players, and reset data.
+  //   • PLAYER — logs in with their permanent Player Key (their key
+  //     IS their password). Players can only Accept/Reject match
+  //     requests where they are the loser.
+  //
+  // SETUP (one-time, ~15 minutes):
+  // 1. Go to https://supabase.com and create a free project.
+  // 2. Open "SQL Editor" and run the ENTIRE block below in one go.
+  //
+  /* ---------------- BEGIN SQL SETUP (copy everything to the ; at the end) ----------------
+
+  -- Permanent, unique player keys like HC-483920 (random 6 digits, not sequential)
+  create or replace function generate_random_player_key()
+  returns text as $$
+  declare
+    new_key text;
+    already_used boolean;
+  begin
+    loop
+      new_key := 'HC-' || lpad(floor(random() * 1000000)::text, 6, '0');
+      select exists(select 1 from players where player_key = new_key) into already_used;
+      exit when not already_used; -- keep retrying on the astronomically rare collision
+    end loop;
+    return new_key;
+  end;
+  $$ language plpgsql;
+
+  create table if not exists players (
+    id bigint generated always as identity primary key,
+    player_key text unique not null default generate_random_player_key(),
+    name text not null,
+    role text default 'Player',
+    suspended boolean not null default false,
+    created_at timestamptz not null default now()
+  );
+
+  create table if not exists player_links (
+    id bigint generated always as identity primary key,
+    player_id bigint not null references players(id) on delete cascade,
+    linked_player_id bigint not null references players(id) on delete cascade,
+    created_at timestamptz not null default now(),
+    unique(player_id, linked_player_id)
+  );
+
+  create table if not exists match_requests (
+    id bigint generated always as identity primary key,
+    winner_id bigint not null references players(id),
+    loser_id bigint not null references players(id),
+    amount numeric not null check (amount > 0),
+    notes text,
+    status text not null default 'pending' check (status in ('pending','accepted','rejected')),
+    reject_reason text,
+    created_at timestamptz not null default now(),
+    responded_at timestamptz,
+    responded_by bigint references players(id)
+  );
+
+  create table if not exists transactions (
+    id bigint generated always as identity primary key,
+    match_request_id bigint references match_requests(id),
+    winner_id bigint not null references players(id),
+    loser_id bigint not null references players(id),
+    amount numeric not null,
+    created_at timestamptz not null,
+    confirmed_at timestamptz not null default now(),
+    status text not null default 'accepted',
+    confirmed_by bigint references players(id)
+  );
+
+  create table if not exists notifications (
+    id bigint generated always as identity primary key,
+    player_id bigint not null references players(id) on delete cascade,
+    match_request_id bigint references match_requests(id),
+    type text not null check (type in ('request','accepted','rejected')),
+    message text not null,
+    is_read boolean not null default false,
+    created_at timestamptz not null default now()
+  );
+
+  -- Which Supabase Auth users are admins. There is NO client-facing way to
+  -- add a row here — see step 4 below. This is what keeps admin access real.
+  create table if not exists admins (
+    user_id uuid primary key references auth.users(id) on delete cascade,
+    created_at timestamptz not null default now()
+  );
+
+  -- Club-wide "playing week" cycle length. A single settings row (id is
+  -- pinned to 1 by the check constraint). week_anchor_date marks the start
+  -- of the CURRENT cycle — the app computes cycle boundaries by stepping
+  -- forward from this date in week_length_days increments, so a new
+  -- cycle "starts" automatically the moment the date rolls over, with no
+  -- scheduled job needed. Changing week_length_days (see the admin panel)
+  -- also resets week_anchor_date to today, starting a fresh cycle immediately
+  -- under the new length. This table ONLY affects the "This Week" stats card
+  -- and the weekly achievement badges — lifetime profit/loss, the net-balance
+  -- chart, and the activity heatmap all keep reading full transaction history
+  -- and are completely unaffected by this cycle.
+  create table if not exists app_settings (
+    id smallint primary key default 1 check (id = 1),
+    week_length_days int not null default 7 check (week_length_days between 1 and 60),
+    week_anchor_date date not null default current_date,
+    updated_at timestamptz not null default now()
+  );
+  insert into app_settings (id) values (1) on conflict (id) do nothing;
+
+  -- Accept: only works once, only while status='pending'; blocks suspended players
+  create or replace function accept_match_request(p_request_id bigint, p_acting_player_id bigint)
+  returns void as $$
+  declare
+    r match_requests%rowtype;
+    is_suspended boolean;
+  begin
+    select * into r from match_requests where id = p_request_id and status = 'pending' for update;
+    if not found then raise exception 'Request not found or already resolved'; end if;
+    if p_acting_player_id <> r.loser_id then raise exception 'Only the loser can accept this request'; end if;
+
+    select suspended into is_suspended from players where id = p_acting_player_id;
+    if is_suspended then raise exception 'This player account is suspended'; end if;
+
+    update match_requests set status = 'accepted', responded_at = now(), responded_by = p_acting_player_id where id = p_request_id;
+
+    insert into transactions (match_request_id, winner_id, loser_id, amount, created_at, confirmed_at, status, confirmed_by)
+      values (r.id, r.winner_id, r.loser_id, r.amount, r.created_at, now(), 'accepted', p_acting_player_id);
+
+    insert into notifications (player_id, match_request_id, type, message)
+      values (r.winner_id, r.id, 'accepted', 'Your ₹' || r.amount || ' claim was accepted.');
+
+    insert into notifications (player_id, match_request_id, type, message)
+      select linked_player_id, r.id, 'accepted', 'A ₹' || r.amount || ' match between linked players was confirmed.'
+      from player_links where player_id in (r.winner_id, r.loser_id);
+  end;
+  $$ language plpgsql security definer;
+
+  -- Reject: only works once, only while status='pending'; blocks suspended players
+  create or replace function reject_match_request(p_request_id bigint, p_acting_player_id bigint, p_reason text default null)
+  returns void as $$
+  declare
+    r match_requests%rowtype;
+    is_suspended boolean;
+  begin
+    select * into r from match_requests where id = p_request_id and status = 'pending' for update;
+    if not found then raise exception 'Request not found or already resolved'; end if;
+    if p_acting_player_id <> r.loser_id then raise exception 'Only the loser can reject this request'; end if;
+
+    select suspended into is_suspended from players where id = p_acting_player_id;
+    if is_suspended then raise exception 'This player account is suspended'; end if;
+
+    update match_requests
+      set status = 'rejected', responded_at = now(), responded_by = p_acting_player_id, reject_reason = p_reason
+      where id = p_request_id;
+
+    insert into notifications (player_id, match_request_id, type, message)
+      values (r.winner_id, r.id, 'rejected', 'Your ₹' || r.amount || ' claim was rejected.' ||
+        case when p_reason is not null then ' Reason: ' || p_reason else '' end);
+
+    insert into notifications (player_id, match_request_id, type, message)
+      select linked_player_id, r.id, 'rejected', 'A ₹' || r.amount || ' match claim between linked players was rejected.'
+      from player_links where player_id in (r.winner_id, r.loser_id);
+  end;
+  $$ language plpgsql security definer;
+
+  -- Confirmed transactions can never be edited or deleted through normal use.
+  -- The ONE exception is a full club reset (reset_club_data below), which briefly
+  -- sets a transaction-local flag right before clearing them — nothing else can
+  -- set that flag, so this still blocks any ordinary edit/delete attempt.
+  create or replace function prevent_transaction_edits()
+  returns trigger as $$
+  begin
+    if current_setting('hand_casino.allow_transaction_reset', true) = 'true' then
+      return coalesce(new, old);
+    end if;
+    raise exception 'Transactions cannot be modified once created';
+  end;
+  $$ language plpgsql;
+
+  drop trigger if exists no_transaction_updates on transactions;
+  create trigger no_transaction_updates
+    before update or delete on transactions
+    for each row execute function prevent_transaction_edits();
+
+  -- Safe login lookup for players: returns a match ONLY on an exact key,
+  -- never lists other players' keys. This is the only way the app checks a key.
+  create or replace function player_login_by_key(p_key text)
+  returns table(id bigint, name text, role text, suspended boolean) as $$
+  begin
+    return query select p.id, p.name, p.role, p.suspended from players p where p.player_key = p_key;
+  end;
+  $$ language plpgsql security definer;
+
+  -- Safely deletes a player and everything non-permanent tied to them, in one
+  -- atomic transaction. Blocks the delete entirely if they have confirmed
+  -- transaction history (that history is permanent, per the trigger above).
+  -- Admin-only. Doing this as a single function — instead of several separate
+  -- client-side deletes — avoids partial failures from row-level security.
+  create or replace function admin_delete_player(p_player_id bigint)
+  returns void as $$
+  begin
+    if not exists (select 1 from admins where user_id = auth.uid()) then
+      raise exception 'Only admins can delete players';
+    end if;
+
+    if exists (select 1 from transactions where winner_id = p_player_id or loser_id = p_player_id) then
+      raise exception 'Cannot delete a player with confirmed transaction history';
+    end if;
+
+    delete from match_requests where winner_id = p_player_id or loser_id = p_player_id;
+    delete from notifications where player_id = p_player_id;
+    delete from player_links where player_id = p_player_id or linked_player_id = p_player_id;
+    delete from players where id = p_player_id;
+  end;
+  $$ language plpgsql security definer;
+
+  -- Lets a logged-in PLAYER submit their own match claim (not just admins).
+  -- The submitting player is always recorded as the winner making the claim —
+  -- it then goes to the opponent as a pending confirmation, same as an
+  -- admin-logged match. A player can only log a match involving themselves.
+  create or replace function player_log_match_request(
+    p_acting_player_id bigint,
+    p_opponent_id bigint,
+    p_amount numeric,
+    p_notes text default null
+  )
+  returns bigint as $$
+  declare
+    new_request_id bigint;
+    is_suspended boolean;
+    winner_name text;
+    opponent_name text;
+  begin
+    if p_acting_player_id = p_opponent_id then
+      raise exception 'You cannot log a match against yourself';
+    end if;
+    if p_amount is null or p_amount <= 0 then
+      raise exception 'Amount must be greater than zero';
+    end if;
+
+    select suspended into is_suspended from players where id = p_acting_player_id;
+    if is_suspended then
+      raise exception 'Suspended players cannot log matches';
+    end if;
+
+    select name into winner_name from players where id = p_acting_player_id;
+    select name into opponent_name from players where id = p_opponent_id;
+    if winner_name is null or opponent_name is null then
+      raise exception 'Player not found';
+    end if;
+
+    insert into match_requests (winner_id, loser_id, amount, notes, status)
+      values (p_acting_player_id, p_opponent_id, p_amount, p_notes, 'pending')
+      returning id into new_request_id;
+
+    insert into notifications (player_id, match_request_id, type, message)
+    select distinct recipient, new_request_id, 'request',
+      case when recipient = p_opponent_id
+        then winner_name || ' claims: "You won ₹' || p_amount::text || ' from me."'
+        else winner_name || ' sent a ₹' || p_amount::text || ' match claim to ' || opponent_name || '.'
+      end
+    from (
+      select p_opponent_id as recipient
+      union
+      select linked_player_id from player_links where player_id in (p_acting_player_id, p_opponent_id)
+    ) recipients;
+
+    return new_request_id;
+  end;
+  $$ language plpgsql security definer;
+
+  -- Full club reset: wipes every player's profit/loss by clearing all
+  -- confirmed transactions, match requests (pending/accepted/rejected),
+  -- notifications, and links. Player PROFILES themselves are kept — only
+  -- their financial history is cleared, so names/keys/roles survive a reset.
+  -- Admin-only.
+  create or replace function reset_club_data()
+  returns void as $$
+  begin
+    if not exists (select 1 from admins where user_id = auth.uid()) then
+      raise exception 'Only admins can reset club data';
+    end if;
+
+    -- Momentarily allow this trusted function to clear transactions, overriding
+    -- the "permanent" trigger. The flag is local to this one transaction only —
+    -- nothing outside this function can set it, so ordinary deletes stay blocked.
+    perform set_config('hand_casino.allow_transaction_reset', 'true', true);
+
+    delete from notifications where true;
+    delete from transactions where true;
+    delete from match_requests where true;
+    delete from player_links where true;
+  end;
+  $$ language plpgsql security definer;
+
+  grant execute on function accept_match_request(bigint, bigint) to anon, authenticated;
+  grant execute on function reject_match_request(bigint, bigint, text) to anon, authenticated;
+  grant execute on function player_login_by_key(text) to anon, authenticated;
+  grant execute on function admin_delete_player(bigint) to authenticated;
+  grant execute on function player_log_match_request(bigint, bigint, numeric, text) to anon, authenticated;
+  grant execute on function reset_club_data() to authenticated;
+
+  -- Row Level Security
+  alter table players enable row level security;
+  alter table player_links enable row level security;
+  alter table match_requests enable row level security;
+  alter table transactions enable row level security;
+  alter table notifications enable row level security;
+  alter table admins enable row level security;
+
+  -- admins: a signed-in user can only check THEIR OWN row (can't list other admins)
+  drop policy if exists "admins_select_self" on admins;
+  create policy "admins_select_self" on admins for select using (auth.uid() = user_id);
+  -- deliberately no insert/update/delete policy — see manual step 4 below
+
+  -- players: everyone can see name/role/suspended/created_at (public roster),
+  -- but the player_key COLUMN itself is hidden from anonymous access below via
+  -- column-level grants — only an authenticated admin session can read it.
+  drop policy if exists "players_all" on players;
+  drop policy if exists "players_select_all" on players;
+  create policy "players_select_all" on players for select using (true);
+
+  drop policy if exists "players_insert_admin_only" on players;
+  create policy "players_insert_admin_only" on players for insert
+    with check (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  drop policy if exists "players_update_admin_only" on players;
+  create policy "players_update_admin_only" on players for update
+    using (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  drop policy if exists "players_delete_admin_only" on players;
+  create policy "players_delete_admin_only" on players for delete
+    using (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  -- Column-level lockdown of player_key: anon (players, before any real login)
+  -- can only ever read the non-secret columns. Only 'authenticated' (i.e. an
+  -- admin signed in via Supabase Auth) can read the key column directly.
+  revoke select on players from anon, authenticated;
+  grant select (id, name, role, suspended, created_at) on players to anon;
+  grant select on players to authenticated;
+  revoke insert, update, delete on players from anon;
+  grant insert, update, delete on players to authenticated;
+
+  -- player_links: everyone can view; only admins can create/remove
+  drop policy if exists "player_links_all" on player_links;
+  drop policy if exists "player_links_select" on player_links;
+  create policy "player_links_select" on player_links for select using (true);
+
+  drop policy if exists "player_links_insert_admin" on player_links;
+  create policy "player_links_insert_admin" on player_links for insert
+    with check (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  drop policy if exists "player_links_delete_admin" on player_links;
+  create policy "player_links_delete_admin" on player_links for delete
+    using (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  revoke insert, delete on player_links from anon;
+  grant insert, delete on player_links to authenticated;
+
+  -- match_requests: everyone can view; only admins can create (log a match);
+  -- status changes ONLY happen through the accept/reject functions above.
+  drop policy if exists "match_requests_select" on match_requests;
+  create policy "match_requests_select" on match_requests for select using (true);
+
+  drop policy if exists "match_requests_insert" on match_requests;
+  drop policy if exists "match_requests_insert_admin" on match_requests;
+  create policy "match_requests_insert_admin" on match_requests for insert
+    with check (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  revoke insert on match_requests from anon;
+  grant insert on match_requests to authenticated;
+
+  -- transactions: everyone can view; nobody can insert/update/delete directly
+  -- (only the security-definer accept function writes here)
+  drop policy if exists "transactions_select" on transactions;
+  create policy "transactions_select" on transactions for select using (true);
+
+  -- notifications: everyone can view + mark their own as read; only admins
+  -- (or the security-definer functions) create new ones
+  drop policy if exists "notifications_all" on notifications;
+  drop policy if exists "notifications_select" on notifications;
+  create policy "notifications_select" on notifications for select using (true);
+
+  drop policy if exists "notifications_update" on notifications;
+  create policy "notifications_update" on notifications for update using (true);
+
+  drop policy if exists "notifications_insert_admin" on notifications;
+  create policy "notifications_insert_admin" on notifications for insert
+    with check (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  revoke insert on notifications from anon;
+  grant insert on notifications to authenticated;
+
+  -- app_settings: everyone can read the current playing-week length (players
+  -- need it to compute their own cycle window); only admins can change it.
+  alter table app_settings enable row level security;
+  drop policy if exists "app_settings_select" on app_settings;
+  create policy "app_settings_select" on app_settings for select using (true);
+
+  drop policy if exists "app_settings_update_admin" on app_settings;
+  create policy "app_settings_update_admin" on app_settings for update
+    using (exists (select 1 from admins a where a.user_id = auth.uid()));
+
+  grant select on app_settings to anon, authenticated;
+  revoke update on app_settings from anon;
+  grant update on app_settings to authenticated;
+
+  ---------------- END SQL SETUP ---------------- */
+  //
+  // 3. Turn on realtime replication for: players, player_links, match_requests,
+  //    transactions, notifications (Database > Replication).
+  // 4. CREATE YOUR ADMIN ACCOUNT (one-time, manual — this is what makes admin
+  //    access real and not just a client-side flag):
+  //      a. Authentication > Users > "Add user" — enter an email + password,
+  //         and make sure it's created as already confirmed.
+  //      b. Copy that user's UUID from the Users table.
+  //      c. Back in the SQL Editor, run:
+  //           insert into admins (user_id) values ('paste-the-uuid-here');
+  // 5. Go to Project Settings > API. Copy the "Project URL" and "anon public"
+  //    key, and paste them below.
+  // 6. Commit and push. Admins log in with the email/password from step 4.
+  //    Players log in with the Player Key an admin gives them after creating
+  //    their profile.
+  // ============================================================
+
+  const SUPABASE_URL = "https://ngkwnxjacxvlmhrjsmvw.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_KRiMWU-VIO_T-vI4RMZzFA_z6I-3Dxt";
+  const SUPABASE_CONFIGURED = SUPABASE_URL !== "YOUR_SUPABASE_URL" && SUPABASE_ANON_KEY !== "YOUR_SUPABASE_ANON_KEY";
+
+  let supabaseClient = null;
+  if(SUPABASE_CONFIGURED){
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  }
+
+  const PLAYER_SESSION_KEY = 'handCasinoPlayerSessionId';
+
+  // ---------------- In-memory state ----------------
+  let players = [];        // safe columns for anon; includes player_key when admin is signed in
+  let playerLinks = [];
+  let matchRequests = [];
+  let transactions = [];
+  let notifications = [];
+
+  // Playing-week cycle: drives ONLY the "This Week" stats card and the weekly
+  // achievement badges. Lifetime profit/loss, the net-balance chart, and the
+  // activity heatmap always read full history and never depend on this.
+  let appSettings = { week_length_days: 7, week_anchor_date: new Date().toISOString().slice(0, 10) };
+  let appSettingsAvailable = false; // false until app_settings table + row are confirmed to exist
+
+  let session = { type: 'none', playerId: null }; // 'none' | 'player' | 'admin'
+  let dataLoaded = false;
+  let pendingRejectId = null;
+
+  // ---------------- Lookup helpers ----------------
+  function playerById(id){ return players.find(p => p.id === id); }
+  function playerName(id){ const p = playerById(id); return p ? p.name : 'Unknown'; }
+  function initials(name){ return (name || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase(); }
+  function formatMoney(n){ return '₹' + Math.abs(Number(n) || 0).toLocaleString('en-IN'); }
+  function formatDateTime(iso){
+    if(!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-IN', { day:'numeric', month:'short' }) + ' · ' + d.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit' });
+  }
+  function linksFor(playerId){ return playerLinks.filter(l => l.player_id === playerId).map(l => l.linked_player_id); }
+  function statsFor(playerId){
+    let profit = 0, loss = 0, matches = 0;
+    transactions.forEach(t => {
+      if(t.winner_id === playerId){ profit += Number(t.amount); matches++; }
+      else if(t.loser_id === playerId){ loss += Number(t.amount); matches++; }
+    });
+    const pending = matchRequests.filter(r => r.status === 'pending' && (r.winner_id === playerId || r.loser_id === playerId)).length;
+    const completed = transactions.filter(t => t.winner_id === playerId || t.loser_id === playerId).length;
+    return { profit, loss, net: profit - loss, matches, pending, completed };
+  }
+
+  // ---------------- Playing-week cycle ----------------
+  // Purely computed from (lengthDays, anchorDate, today) — nothing is ever
+  // deleted or archived. A new cycle "starts" the instant today's date rolls
+  // past the current cycle's end; the "This Week" card and weekly achievement
+  // badges just start reading a different, currently-empty slice of the very
+  // same transactions table. Lifetime totals and the heatmap read ALL of it,
+  // always, regardless of any of this.
+  function getCurrentCycle(){
+    const lengthDays = Math.max(1, Math.round(Number(appSettings.week_length_days)) || 7);
+    const anchor = new Date(appSettings.week_anchor_date + 'T00:00:00.000Z');
+    const today = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00.000Z');
+    const msPerDay = 86400000;
+    const daysSinceAnchor = Math.floor((today.getTime() - anchor.getTime()) / msPerDay);
+    const cycleIndex = Math.floor(daysSinceAnchor / lengthDays);
+    const cycleStart = new Date(anchor.getTime() + cycleIndex * lengthDays * msPerDay);
+    const cycleEnd = new Date(cycleStart.getTime() + lengthDays * msPerDay); // exclusive
+    const daysElapsed = Math.floor((today.getTime() - cycleStart.getTime()) / msPerDay) + 1;
+    const daysRemaining = Math.max(0, lengthDays - daysElapsed);
+    return { lengthDays, cycleStart, cycleEnd, daysElapsed, daysRemaining };
+  }
+
+  function statsForCycle(playerId, cycle){
+    let profit = 0, loss = 0, matches = 0;
+    transactions.forEach(t => {
+      if(t.winner_id !== playerId && t.loser_id !== playerId) return;
+      const ts = new Date(t.confirmed_at);
+      if(ts < cycle.cycleStart || ts >= cycle.cycleEnd) return;
+      if(t.winner_id === playerId){ profit += Number(t.amount); matches++; }
+      else { loss += Number(t.amount); matches++; }
+    });
+    return { profit, loss, net: profit - loss, matches };
+  }
+
+  function formatCycleRange(cycle){
+    const endInclusive = new Date(cycle.cycleEnd.getTime() - 86400000);
+    const opts = { day: 'numeric', month: 'short' };
+    return `${cycle.cycleStart.toLocaleDateString('en-IN', opts)} – ${endInclusive.toLocaleDateString('en-IN', opts)}`;
+  }
+
+  function renderThisWeekCard(playerId){
+    const panel = document.getElementById('pdThisWeekPanel');
+    if(!panel) return;
+    const cycle = getCurrentCycle();
+    const s = statsForCycle(playerId, cycle);
+
+    document.getElementById('pdWeekRange').textContent =
+      `${formatCycleRange(cycle)} · resets in ${cycle.daysRemaining} day${cycle.daysRemaining === 1 ? '' : 's'}`;
+    document.getElementById('pdWeekProfit').textContent = formatMoney(s.profit);
+    document.getElementById('pdWeekLoss').textContent = formatMoney(s.loss);
+    const netEl = document.getElementById('pdWeekNet');
+    const sign = s.net >= 0 ? '+' : '−';
+    netEl.textContent = sign + formatMoney(s.net);
+    netEl.className = 'value ' + (s.net >= 0 ? 'ct-pos' : 'ct-neg');
+    document.getElementById('pdWeekMatches').textContent = s.matches;
+
+    const note = document.getElementById('pdWeekConfigNote');
+    if(note) note.style.display = appSettingsAvailable ? 'none' : 'block';
+  }
+
+  function headToHeadFor(playerId){
+    const map = {};
+    transactions.forEach(t => {
+      if(t.winner_id === playerId){
+        const opp = t.loser_id;
+        if(!map[opp]) map[opp] = { opponentId: opp, profit: 0, loss: 0, matches: 0 };
+        map[opp].profit += Number(t.amount);
+        map[opp].matches++;
+      } else if(t.loser_id === playerId){
+        const opp = t.winner_id;
+        if(!map[opp]) map[opp] = { opponentId: opp, profit: 0, loss: 0, matches: 0 };
+        map[opp].loss += Number(t.amount);
+        map[opp].matches++;
+      }
+    });
+    return Object.values(map)
+      .map(o => ({ ...o, net: o.profit - o.loss }))
+      .sort((a, b) => b.net - a.net || playerName(a.opponentId).localeCompare(playerName(b.opponentId)));
+  }
+
+  let netChartRange = 'all';
+  let netChartPlayerId = null;
+
+  function setNetChartRange(range){
+    netChartRange = range;
+    if(netChartPlayerId != null) renderNetChart(netChartPlayerId);
+  }
+
+  function renderNetChart(playerId){
+    netChartPlayerId = playerId;
+    const container = document.getElementById('pdNetChartContainer');
+    const emptyEl = document.getElementById('pdNetChartEmpty');
+    const rangeWrap = document.getElementById('pdChartRange');
+    if(!container) return;
+
+    const history = transactions
+      .filter(t => t.winner_id === playerId || t.loser_id === playerId)
+      .slice()
+      .sort((a, b) => new Date(a.confirmed_at) - new Date(b.confirmed_at));
+
+    if(history.length === 0){
+      container.innerHTML = '';
+      if(emptyEl) emptyEl.style.display = 'block';
+      if(rangeWrap) rangeWrap.style.display = 'none';
+      return;
+    }
+    if(emptyEl) emptyEl.style.display = 'none';
+    if(rangeWrap) rangeWrap.style.display = history.length > 10 ? 'flex' : 'none';
+
+    // Full cumulative series first, so the y-axis stays accurate even when the view below is windowed.
+    let cum = 0;
+    const fullPoints = [{ x: 0, y: 0, date: null, opp: null, delta: null }];
+    history.forEach(t => {
+      const delta = t.winner_id === playerId ? Number(t.amount) : -Number(t.amount);
+      cum += delta;
+      fullPoints.push({
+        x: fullPoints.length,
+        y: cum,
+        date: t.confirmed_at,
+        opp: t.winner_id === playerId ? t.loser_id : t.winner_id,
+        delta
+      });
+    });
+
+    let points = fullPoints;
+    if(netChartRange !== 'all'){
+      const n = Number(netChartRange);
+      points = fullPoints.slice(-Math.min(n + 1, fullPoints.length));
+    }
+    points = points.map((p, i) => ({ ...p, x: i }));
+
+    if(rangeWrap){
+      rangeWrap.querySelectorAll('button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.range === netChartRange);
+      });
+    }
+
+    const w = 640, h = 220, padL = 58, padR = 16, padT = 16, padB = 14;
+    const ys = points.map(p => p.y);
+    const minY = Math.min(0, ...ys);
+    const maxY = Math.max(0, ...ys);
+    const yRange = (maxY - minY) || 1;
+    const xMax = points.length - 1 || 1;
+
+    const scaleX = x => padL + (x / xMax) * (w - padL - padR);
+    const scaleY = y => padT + (1 - (y - minY) / yRange) * (h - padT - padB);
+    const zeroY = scaleY(0);
+
+    const finalNet = points[points.length - 1].y;
+    const lineColor = finalNet >= 0 ? 'var(--accent-2)' : 'var(--danger)';
+
+    const linePoints = points.map(p => `${scaleX(p.x).toFixed(1)},${scaleY(p.y).toFixed(1)}`).join(' ');
+    const areaPath = `M ${scaleX(0).toFixed(1)},${zeroY.toFixed(1)} L ` +
+      points.map(p => `${scaleX(p.x).toFixed(1)},${scaleY(p.y).toFixed(1)}`).join(' L ') +
+      ` L ${scaleX(xMax).toFixed(1)},${zeroY.toFixed(1)} Z`;
+
+    const gridVals = [minY, minY + yRange / 2, maxY];
+    const gridLines = gridVals.map(v => {
+      const y = scaleY(v);
+      const sign = v > 0 ? '+' : v < 0 ? '-' : '';
+      return `
+        <line x1="${padL}" y1="${y.toFixed(1)}" x2="${w - padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1" ${Math.abs(v) < 0.001 ? 'stroke-dasharray="4,3"' : ''}/>
+        <text x="${padL - 8}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">${sign}${formatMoney(Math.round(v))}</text>
+      `;
+    }).join('');
+
+    const dots = points.slice(1).map(p => {
+      const cx = scaleX(p.x), cy = scaleY(p.y);
+      const dotColor = p.delta >= 0 ? 'var(--accent-2)' : 'var(--danger)';
+      return `<circle class="chart-dot" cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.5" fill="${dotColor}" stroke="var(--panel)" stroke-width="1.5"/>`;
+    }).join('');
+
+    container.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" class="chart-svg" id="pdNetChartSvg" preserveAspectRatio="none">
+        ${gridLines}
+        <path class="chart-area" d="${areaPath}" fill="${lineColor}" opacity="0.12"></path>
+        <polyline class="chart-line" points="${linePoints}" fill="none" stroke="${lineColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+        <g class="chart-crosshair" id="pdNetChartCrosshair" opacity="0">
+          <line x1="0" y1="${padT}" x2="0" y2="${h - padB}"></line>
+          <circle class="chart-hover-dot" cx="0" cy="0" r="5.5"></circle>
+        </g>
+        <rect class="chart-overlay" x="${padL}" y="0" width="${Math.max(w - padL - padR, 1)}" height="${h}"></rect>
+      </svg>
+      <div class="chart-tooltip" id="pdNetChartTooltip"></div>
+    `;
+
+    animateNetChartLine();
+    attachNetChartInteractivity({ points, scaleX, scaleY, w, h, padL, padR, padT, padB, playerId });
+  }
+
+  function animateNetChartLine(){
+    const line = document.querySelector('#pdNetChartSvg .chart-line');
+    if(!line || !line.getTotalLength) return;
+    const len = line.getTotalLength();
+    line.style.strokeDasharray = len;
+    line.style.strokeDashoffset = len;
+    line.getBoundingClientRect(); // force reflow so the transition below actually animates
+    requestAnimationFrame(() => { line.style.strokeDashoffset = '0'; });
+  }
+
+  function attachNetChartInteractivity(meta){
+    const { points, scaleX, scaleY, w, padL, padR, playerId } = meta;
+    const svg = document.getElementById('pdNetChartSvg');
+    const wrap = document.getElementById('pdNetChartContainer');
+    const tooltip = document.getElementById('pdNetChartTooltip');
+    const crosshair = document.getElementById('pdNetChartCrosshair');
+    const overlay = svg ? svg.querySelector('.chart-overlay') : null;
+    if(!svg || !wrap || !tooltip || !crosshair || !overlay) return;
+
+    const crossLine = crosshair.querySelector('line');
+    const hoverDot = crosshair.querySelector('circle');
+    const xMax = points.length - 1 || 1;
+
+    function svgXFromClientX(clientX){
+      const rect = svg.getBoundingClientRect();
+      const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / rect.width));
+      return ratio * w;
+    }
+
+    function nearestIndex(svgX){
+      const raw = ((svgX - padL) / (w - padL - padR)) * xMax;
+      return Math.max(0, Math.min(points.length - 1, Math.round(raw)));
+    }
+
+    function showAt(idx){
+      const p = points[idx];
+      const cx = scaleX(p.x), cy = scaleY(p.y);
+      crossLine.setAttribute('x1', cx.toFixed(1));
+      crossLine.setAttribute('x2', cx.toFixed(1));
+      hoverDot.setAttribute('cx', cx.toFixed(1));
+      hoverDot.setAttribute('cy', cy.toFixed(1));
+      hoverDot.setAttribute('fill', p.delta == null ? 'var(--accent)' : (p.delta >= 0 ? 'var(--accent-2)' : 'var(--danger)'));
+      crosshair.setAttribute('opacity', '1');
+
+      if(p.date == null){
+        tooltip.innerHTML = `<div class="ct-title">Starting point</div><div class="ct-date">Before your first confirmed match</div><div class="ct-row"><span>Net</span><b>₹0</b></div>`;
+      } else {
+        const sign = p.delta >= 0 ? '+' : '−';
+        const netSign = p.y >= 0 ? '+' : '−';
+        tooltip.innerHTML = `
+          <div class="ct-title">vs ${playerName(p.opp)}</div>
+          <div class="ct-date">${formatDateTime(p.date)}</div>
+          <div class="ct-row"><span>Result</span><b class="${p.delta >= 0 ? 'ct-pos' : 'ct-neg'}">${sign}${formatMoney(p.delta)}</b></div>
+          <div class="ct-row"><span>Net after</span><b class="${p.y >= 0 ? 'ct-pos' : 'ct-neg'}">${netSign}${formatMoney(p.y)}</b></div>
+        `;
+      }
+      tooltip.style.opacity = '1';
+
+      const wrapRect = wrap.getBoundingClientRect();
+      const relX = (cx / w) * wrapRect.width;
+      const relY = (cy / meta.h) * wrapRect.height;
+      const tw = tooltip.offsetWidth || 170;
+      const th = tooltip.offsetHeight || 74;
+      let left = relX + 14;
+      if(left + tw > wrapRect.width) left = relX - tw - 14;
+      left = Math.max(0, Math.min(wrapRect.width - tw, left));
+      let top = relY - th - 12;
+      if(top < 0) top = Math.min(wrapRect.height - th, relY + 16);
+      tooltip.style.left = left.toFixed(0) + 'px';
+      tooltip.style.top = top.toFixed(0) + 'px';
+    }
+
+    function hide(){
+      crosshair.setAttribute('opacity', '0');
+      tooltip.style.opacity = '0';
+    }
+
+    function handlePointer(clientX){
+      showAt(nearestIndex(svgXFromClientX(clientX)));
+    }
+
+    overlay.addEventListener('mousemove', (e) => handlePointer(e.clientX));
+    overlay.addEventListener('mouseleave', hide);
+    overlay.addEventListener('touchstart', (e) => { if(e.touches[0]) handlePointer(e.touches[0].clientX); }, { passive: true });
+    overlay.addEventListener('touchmove', (e) => { if(e.touches[0]){ e.preventDefault(); handlePointer(e.touches[0].clientX); } }, { passive: false });
+    overlay.addEventListener('touchend', hide);
+  }
+
+  // ---------------- Achievements ----------------
+  function tierMeta(tier){
+    const map = {
+      locked: { label: 'Locked', color: 'var(--muted)', bg: 'rgba(142,168,155,0.14)' },
+      bronze: { label: 'Bronze', color: '#d99257', bg: 'rgba(217,146,87,0.16)' },
+      silver: { label: 'Silver', color: '#cfd6e0', bg: 'rgba(207,214,224,0.16)' },
+      gold:   { label: 'Gold',   color: 'var(--accent)', bg: 'var(--accent-dim)' },
+      unlocked: { label: 'Unlocked', color: 'var(--accent-2)', bg: 'var(--profit-bg)' },
+    };
+    return map[tier] || map.locked;
+  }
+
+  function tierForValue(value, thresholds){
+    if(value >= thresholds[2]) return 'gold';
+    if(value >= thresholds[1]) return 'silver';
+    if(value >= thresholds[0]) return 'bronze';
+    return 'locked';
+  }
+
+  function nextTierHint(value, thresholds, labelFn){
+    const names = ['Bronze', 'Silver', 'Gold'];
+    for(let i = 0; i < 3; i++){
+      if(value < thresholds[i]){
+        return `${labelFn(thresholds[i] - value)} more to reach ${names[i]}`;
+      }
+    }
+    return null;
+  }
+
+  function computeAchievements(playerId, cycle){
+    const history = transactions
+      .filter(t => t.winner_id === playerId || t.loser_id === playerId)
+      .filter(t => { const ts = new Date(t.confirmed_at); return ts >= cycle.cycleStart && ts < cycle.cycleEnd; })
+      .slice()
+      .sort((a, b) => new Date(a.confirmed_at) - new Date(b.confirmed_at));
+
+    const wins = history.filter(t => t.winner_id === playerId).length;
+    const totalMatches = history.length;
+    const uniqueOpponents = new Set(history.map(t => t.winner_id === playerId ? t.loser_id : t.winner_id)).size;
+
+    let biggestWin = 0;
+    history.forEach(t => { if(t.winner_id === playerId) biggestWin = Math.max(biggestWin, Number(t.amount)); });
+
+    let bestStreak = 0, curStreak = 0;
+    history.forEach(t => {
+      if(t.winner_id === playerId){ curStreak++; bestStreak = Math.max(bestStreak, curStreak); }
+      else { curStreak = 0; }
+    });
+
+    const beatCounts = {};
+    history.forEach(t => { if(t.winner_id === playerId) beatCounts[t.loser_id] = (beatCounts[t.loser_id] || 0) + 1; });
+    const maxBeatSameOpp = Math.max(0, ...Object.values(beatCounts));
+
+    let cum = 0, minCum = 0, peakNet = 0;
+    history.forEach(t => {
+      const delta = t.winner_id === playerId ? Number(t.amount) : -Number(t.amount);
+      cum += delta;
+      minCum = Math.min(minCum, cum);
+      peakNet = Math.max(peakNet, cum);
+    });
+    const recoveredFromDeficit = minCum <= -500 && cum > 0;
+
+    const daysPlayed = new Set(history.map(t => new Date(t.confirmed_at).toISOString().slice(0, 10))).size;
+
+    // "Regular" is the one badge mathematically capped by the cycle length itself
+    // (you can't play more days than the week has), so its tiers scale with it —
+    // everything else uses fixed thresholds sized for a roughly week-long cycle.
+    const g = cycle.lengthDays;
+    const regularSilver = Math.min(g, Math.max(1, Math.ceil(g * 0.66)));
+    const regularBronze = Math.min(regularSilver, Math.max(1, Math.ceil(g * 0.34)));
+    const regularThresholds = [regularBronze, regularSilver, g];
+
+    const moneyLabel = n => formatMoney(n);
+
+    return [
+      {
+        icon: '🎯', title: 'First Blood',
+        tier: wins >= 1 ? 'unlocked' : 'locked',
+        desc: wins >= 1 ? 'Won a confirmed match this week.' : 'Win a confirmed match this week to unlock.',
+      },
+      {
+        icon: '🔥', title: 'Win Streak',
+        tier: tierForValue(bestStreak, [2, 3, 5]),
+        desc: bestStreak > 0 ? `Best streak this week: ${bestStreak} win${bestStreak === 1 ? '' : 's'} in a row.` : 'Win 2 matches in a row this week to unlock.',
+        progress: nextTierHint(bestStreak, [2, 3, 5], n => `${n} win${n === 1 ? '' : 's'}`),
+      },
+      {
+        icon: '🏋️', title: 'Match Grinder',
+        tier: tierForValue(totalMatches, [3, 6, 10]),
+        desc: `${totalMatches} confirmed match${totalMatches === 1 ? '' : 'es'} this week.`,
+        progress: nextTierHint(totalMatches, [3, 6, 10], n => `${n} match${n === 1 ? '' : 'es'}`),
+      },
+      {
+        icon: '💰', title: 'High Roller',
+        tier: tierForValue(biggestWin, [500, 2000, 5000]),
+        desc: biggestWin > 0 ? `Biggest single win this week: ${formatMoney(biggestWin)}.` : 'Win a big single match this week to unlock.',
+        progress: nextTierHint(biggestWin, [500, 2000, 5000], moneyLabel),
+      },
+      {
+        icon: '💎', title: 'Profit Milestone',
+        tier: tierForValue(peakNet, [500, 2000, 5000]),
+        desc: peakNet > 0 ? `Peak net this week: ${formatMoney(peakNet)}.` : "Reach a positive net for the week to unlock.",
+        progress: nextTierHint(peakNet, [500, 2000, 5000], moneyLabel),
+      },
+      {
+        icon: '⚔️', title: 'Giant Slayer',
+        tier: tierForValue(maxBeatSameOpp, [2, 3, 5]),
+        desc: maxBeatSameOpp > 0 ? `Beaten one opponent ${maxBeatSameOpp} time${maxBeatSameOpp === 1 ? '' : 's'} this week.` : 'Beat the same opponent twice this week to unlock.',
+        progress: nextTierHint(maxBeatSameOpp, [2, 3, 5], n => `${n} win${n === 1 ? '' : 's'}`),
+      },
+      {
+        icon: '🤝', title: 'Well Connected',
+        tier: tierForValue(uniqueOpponents, [2, 4, 6]),
+        desc: `Played against ${uniqueOpponents} different opponent${uniqueOpponents === 1 ? '' : 's'} this week.`,
+        progress: nextTierHint(uniqueOpponents, [2, 4, 6], n => `${n} opponent${n === 1 ? '' : 's'}`),
+      },
+      {
+        icon: '🔄', title: 'Comeback Kid',
+        tier: recoveredFromDeficit ? 'unlocked' : 'locked',
+        desc: recoveredFromDeficit ? `Recovered from a ${formatMoney(minCum)} deficit to a positive net this week.` : 'Recover from a ₹500+ deficit to a positive net this week to unlock.',
+      },
+      {
+        icon: '📅', title: 'Regular',
+        tier: tierForValue(daysPlayed, regularThresholds),
+        desc: `Played on ${daysPlayed} of ${cycle.lengthDays} day${cycle.lengthDays === 1 ? '' : 's'} this week.`,
+        progress: nextTierHint(daysPlayed, regularThresholds, n => `${n} day${n === 1 ? '' : 's'}`),
+      },
+    ];
+  }
+
+  function renderAchievements(playerId, cycle){
+    const grid = document.getElementById('pdBadgesGrid');
+    if(!grid) return;
+    const badges = computeAchievements(playerId, cycle);
+    const unlockedCount = badges.filter(b => b.tier !== 'locked').length;
+    const sub = document.getElementById('pdAchievementsSub');
+    if(sub) sub.textContent = `${unlockedCount} of ${badges.length} unlocked this week — resets in ${cycle.daysRemaining} day${cycle.daysRemaining === 1 ? '' : 's'}.`;
+
+    grid.innerHTML = badges.map(b => {
+      const meta = tierMeta(b.tier);
+      const locked = b.tier === 'locked';
+      return `
+        <div class="badge-card ${locked ? 'locked' : ''}">
+          <div class="badge-icon">${b.icon}</div>
+          <div class="badge-title">${b.title}</div>
+          <div class="badge-tier" style="background:${meta.bg}; color:${meta.color};">${meta.label}</div>
+          <div class="badge-desc">${b.desc}</div>
+          ${(!locked && b.progress) ? `<div class="badge-progress">${b.progress}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---------------- Activity Heatmap ----------------
+  function computeDailyActivity(playerId){
+    const dayMap = new Map();
+    transactions.forEach(t => {
+      if(t.winner_id !== playerId && t.loser_id !== playerId) return;
+      const key = new Date(t.confirmed_at).toISOString().slice(0, 10);
+      const delta = t.winner_id === playerId ? Number(t.amount) : -Number(t.amount);
+      const cur = dayMap.get(key) || { net: 0, count: 0 };
+      cur.net += delta;
+      cur.count += 1;
+      dayMap.set(key, cur);
+    });
+    return dayMap;
+  }
+
+  function renderActivityHeatmap(playerId){
+    const inner = document.getElementById('pdHeatmapInner');
+    const emptyEl = document.getElementById('pdHeatmapEmpty');
+    const legendEl = document.getElementById('pdHeatmapLegend');
+    const detailEl = document.getElementById('pdHeatmapDetail');
+    if(!inner) return;
+
+    const dayMap = computeDailyActivity(playerId);
+    if(dayMap.size === 0){
+      inner.innerHTML = '';
+      if(legendEl) legendEl.innerHTML = '';
+      if(emptyEl) emptyEl.style.display = 'block';
+      if(detailEl) detailEl.innerHTML = '<span class="muted">No activity yet.</span>';
+      return;
+    }
+    if(emptyEl) emptyEl.style.display = 'none';
+
+    const WEEKS = 18;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const totalDays = WEEKS * 7;
+    const startDate = new Date(today);
+    startDate.setDate(startDate.getDate() - (totalDays - 1));
+    startDate.setDate(startDate.getDate() - startDate.getDay()); // rewind to the preceding Sunday
+
+    const days = [];
+    const cursor = new Date(startDate);
+    while(cursor <= today){
+      const key = cursor.toISOString().slice(0, 10);
+      const info = dayMap.get(key) || null;
+      days.push({ date: new Date(cursor), key, net: info ? info.net : null, count: info ? info.count : 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    const weeks = [];
+    for(let i = 0; i < days.length; i += 7) weeks.push(days.slice(i, i + 7));
+
+    const maxAbs = Math.max(1, ...[...dayMap.values()].map(v => Math.abs(v.net)));
+
+    function colorFor(day){
+      if(day.count === 0) return 'var(--panel-2)';
+      if(day.net === 0) return 'rgba(224,169,74,0.55)';
+      const intensity = Math.min(1, Math.abs(day.net) / maxAbs);
+      const alpha = (0.22 + intensity * 0.78).toFixed(2);
+      return day.net > 0 ? `rgba(52,211,153,${alpha})` : `rgba(242,89,107,${alpha})`;
+    }
+
+    const monthLabels = weeks.map(week => {
+      const firstOfMonth = week.find(d => d.date.getDate() === 1);
+      return firstOfMonth ? firstOfMonth.date.toLocaleDateString('en-IN', { month: 'short' }) : '';
+    });
+
+    const monthsHtml = `<div class="heatmap-months" style="grid-template-columns:repeat(${weeks.length}, 16px);">` +
+      monthLabels.map(m => `<div class="heatmap-month-label">${m}</div>`).join('') + `</div>`;
+
+    const cellsHtml = `<div class="heatmap-grid" style="grid-template-columns:repeat(${weeks.length}, 13px);">` +
+      weeks.map(week => week.map(day => {
+        const dateLabel = day.date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+        return `<div class="heatmap-cell" style="background:${colorFor(day)};" data-date="${dateLabel}" data-net="${day.net === null ? '' : day.net}" data-count="${day.count}" onclick="showHeatmapDetail(this)"></div>`;
+      }).join('')).join('') + `</div>`;
+
+    inner.innerHTML = monthsHtml + cellsHtml;
+
+    if(legendEl){
+      legendEl.innerHTML = `
+        <span>Down</span>
+        <span class="swatch" style="background:rgba(242,89,107,0.85);"></span>
+        <span class="swatch" style="background:rgba(242,89,107,0.4);"></span>
+        <span class="swatch" style="background:var(--panel-2);"></span>
+        <span class="swatch" style="background:rgba(52,211,153,0.4);"></span>
+        <span class="swatch" style="background:rgba(52,211,153,0.85);"></span>
+        <span>Up</span>
+      `;
+    }
+    if(detailEl) detailEl.innerHTML = '<span class="muted">Tap any day to see what happened.</span>';
+  }
+
+  function showHeatmapDetail(cell){
+    const detailEl = document.getElementById('pdHeatmapDetail');
+    if(!detailEl) return;
+    const date = cell.getAttribute('data-date');
+    const count = Number(cell.getAttribute('data-count') || 0);
+    const netAttr = cell.getAttribute('data-net');
+    if(count === 0){
+      detailEl.innerHTML = `<strong>${date}</strong> — <span class="muted">no matches</span>`;
+      return;
+    }
+    const net = Number(netAttr);
+    const sign = net >= 0 ? '+' : '−';
+    const cls = net >= 0 ? 'ct-pos' : 'ct-neg';
+    detailEl.innerHTML = `<strong>${date}</strong> — ${count} match${count === 1 ? '' : 'es'}, net <span class="${cls}">${sign}${formatMoney(net)}</span>`;
+  }
+
+  // ---------------- Leaderboard (landing page) ----------------
+  function renderLeaderboard(){
+    const body = document.getElementById('leaderboardBody');
+    const empty = document.getElementById('leaderboardEmpty');
+    if(!body) return;
+
+    const ranked = players
+      .map(p => ({ player: p, stats: statsFor(p.id) }))
+      .sort((a, b) => b.stats.net - a.stats.net);
+
+    empty.style.display = ranked.length ? 'none' : 'block';
+
+    body.innerHTML = ranked.map((row, i) => {
+      const rank = i + 1;
+      const rankClass = rank === 1 ? 'top1' : rank === 2 ? 'top2' : rank === 3 ? 'top3' : '';
+      const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      const net = row.stats.net;
+      const netClass = net > 0 ? 'pos' : net < 0 ? 'neg' : '';
+      const netSign = net > 0 ? '+' : net < 0 ? '-' : '';
+      return `
+        <tr>
+          <td class="rank-cell ${rankClass}" data-label="Rank">${medal}</td>
+          <td data-label="Player">
+            <div class="lb-player">
+              <div class="avatar">${initials(row.player.name)}</div>
+              <div>
+                <div class="lb-player-name">${row.player.name}${row.player.suspended ? ' <span class="badge suspended">Suspended</span>' : ''}</div>
+                <div class="lb-player-role">${row.player.role || ''}</div>
+              </div>
+            </div>
+          </td>
+          <td class="amount-cell pos" data-label="Profit">+${formatMoney(row.stats.profit)}</td>
+          <td class="amount-cell neg" data-label="Loss">-${formatMoney(row.stats.loss)}</td>
+          <td class="amount-cell ${netClass}" data-label="Net Balance">${netSign}${formatMoney(net)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    try { renderWeekCountdown(); } catch(err){ console.error('Week countdown failed to render.', err); }
+  }
+
+  // Live "days left in the current playing week" timer shown on the home page.
+  // Purely reads getCurrentCycle() (see the Playing-week cycle section above) —
+  // ticks every second locally, no network calls, and automatically reflects
+  // whatever week length the admin has configured as soon as it loads.
+  function renderWeekCountdown(){
+    const rangeEl = document.getElementById('lwcRange');
+    if(!rangeEl) return;
+    const cycle = getCurrentCycle();
+    const msLeft = Math.max(0, cycle.cycleEnd.getTime() - Date.now());
+    const totalSeconds = Math.floor(msLeft / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const pad = n => String(n).padStart(2, '0');
+
+    document.getElementById('lwcDays').textContent = pad(days);
+    document.getElementById('lwcHours').textContent = pad(hours);
+    document.getElementById('lwcMinutes').textContent = pad(minutes);
+    document.getElementById('lwcSeconds').textContent = pad(seconds);
+    rangeEl.textContent = `Playing week: ${formatCycleRange(cycle)}`;
+  }
+
+  // ---------------- Collapsible sections ----------------
+  const COLLAPSED_SECTIONS_KEY = 'handCasinoCollapsedSections';
+  function getCollapsedSections(){
+    try { return JSON.parse(localStorage.getItem(COLLAPSED_SECTIONS_KEY)) || {}; }
+    catch(e){ return {}; }
+  }
+  function setCollapsedSections(obj){
+    try { localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify(obj)); } catch(e){}
+  }
+  function toggleCollapsible(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const collapsed = el.classList.toggle('collapsed');
+    const state = getCollapsedSections();
+    state[id] = collapsed;
+    setCollapsedSections(state);
+  }
+  function applyCollapsedState(id){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const state = getCollapsedSections();
+    el.classList.toggle('collapsed', !!state[id]);
+  }
+
+  // ---------------- View switching ----------------
+  function showView(name){
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    document.getElementById(name).classList.add('active');
+  }
+
+  function goLanding(){
+    session = { type: 'none', playerId: null };
+    localStorage.removeItem(PLAYER_SESSION_KEY);
+    renderHeaderRight();
+    showView('viewLanding');
+    if(SUPABASE_CONFIGURED){
+      loadAllData().then(renderLeaderboard).catch(err => console.error('Could not load leaderboard.', err));
+    }
+  }
+  function goPlayerLogin(){
+    document.getElementById('playerLoginError').innerHTML = '';
+    document.getElementById('playerKeyInput').value = '';
+    showView('viewPlayerLogin');
+  }
+  function goAdminLogin(){
+    document.getElementById('adminLoginError').innerHTML = '';
+    showView('viewAdminLogin');
+  }
+
+  function renderHeaderRight(){
+    const box = document.getElementById('headerRight');
+    if(session.type === 'player'){
+      const p = playerById(session.playerId);
+      box.innerHTML = `
+        <span class="saved-indicator" id="savedIndicator">✓ Saved</span>
+        <div class="notif-wrap">
+          <button class="icon-btn" id="notifBellBtn" onclick="toggleNotifPanel()" title="Notifications">🔔<span class="badge-dot" id="notifBadge" style="display:none;">0</span></button>
+          <div class="notif-panel" id="notifPanel">
+            <div class="notif-panel-head"><span>Notifications</span><button class="btn-secondary" onclick="markAllNotificationsRead()">Mark all read</button></div>
+            <div id="notifList"></div>
+          </div>
+        </div>
+        <div class="session-pill">🔑 ${p ? p.name : 'Player'}</div>
+        <button class="btn-secondary" onclick="goLanding()">Log Out</button>
+      `;
+    } else if(session.type === 'admin'){
+      box.innerHTML = `
+        <span class="saved-indicator" id="savedIndicator">✓ Saved</span>
+        <div class="session-pill">🛠️ Admin</div>
+        <button class="btn-secondary" onclick="adminLogout()">Log Out</button>
+      `;
+    } else {
+      box.innerHTML = '';
+    }
+  }
+
+  let savedIndicatorTimeout;
+  function showSavedIndicator(){
+    const el = document.getElementById('savedIndicator');
+    if(!el) return;
+    el.style.opacity = '1';
+    clearTimeout(savedIndicatorTimeout);
+    savedIndicatorTimeout = setTimeout(() => { el.style.opacity = '0'; }, 1200);
+  }
+
+  // ---------------- Loading data ----------------
+  async function loadAllData(){
+    // Requesting select('*') on players would explicitly list every column, including
+    // player_key — and since that column is deliberately hidden from non-admins at the
+    // database level, Postgres rejects the WHOLE query rather than just omitting it.
+    // So we ask for only what the current role is actually allowed to see.
+    const playerColumns = session.type === 'admin' ? '*' : 'id, name, role, suspended, created_at';
+
+    const [pRes, lRes, mRes, tRes, nRes] = await Promise.all([
+      supabaseClient.from('players').select(playerColumns).order('id', { ascending: true }),
+      supabaseClient.from('player_links').select('*'),
+      supabaseClient.from('match_requests').select('*').order('id', { ascending: false }),
+      supabaseClient.from('transactions').select('*').order('id', { ascending: false }),
+      supabaseClient.from('notifications').select('*').order('id', { ascending: false })
+    ]);
+    if(pRes.error) throw pRes.error;
+    if(lRes.error) throw lRes.error;
+    if(mRes.error) throw mRes.error;
+    if(tRes.error) throw tRes.error;
+    if(nRes.error) throw nRes.error;
+    players = pRes.data || [];
+    playerLinks = lRes.data || [];
+    matchRequests = mRes.data || [];
+    transactions = tRes.data || [];
+    notifications = nRes.data || [];
+
+    await loadAppSettings();
+  }
+
+  // Fetched separately from the Promise.all above on purpose: older deployments
+  // won't have the app_settings table until the admin runs the extra SQL for it,
+  // and that must never break loading everything else. Falls back to a
+  // client-only 7-day week (not persisted, not shared) if it's missing.
+  async function loadAppSettings(){
+    try {
+      const { data, error } = await supabaseClient.from('app_settings').select('*').eq('id', 1).maybeSingle();
+      if(error) throw error;
+      if(data){
+        appSettings = { week_length_days: data.week_length_days, week_anchor_date: data.week_anchor_date };
+        appSettingsAvailable = true;
+      } else {
+        appSettingsAvailable = false;
+      }
+    } catch(err){
+      appSettingsAvailable = false;
+    }
+  }
+
+  async function refreshAndRender(){
+    try { await loadAllData(); } catch(err){ console.error('Could not refresh shared data.', err); }
+    dataLoaded = true;
+    try {
+      if(session.type === 'player'){ renderPlayerDashboard(); refreshIncomingRequestPopupIfOpen(); }
+      if(session.type === 'admin') renderAdminDashboard();
+      if(session.type === 'none') renderLeaderboard();
+    } catch(err){
+      console.error('Rendering the dashboard failed.', err);
+    }
+  }
+
+  function subscribeRealtime(){
+    supabaseClient
+      .channel('hand_casino_live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, () => refreshAndRender())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'player_links' }, () => refreshAndRender())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'match_requests' }, () => refreshAndRender())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transactions' }, () => refreshAndRender())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, () => refreshAndRender())
+      .subscribe();
+  }
+
+  async function initApp(){
+    const warning = document.getElementById('sharedModeWarning');
+    if(!SUPABASE_CONFIGURED){
+      if(warning) warning.style.display = 'block';
+      renderLeaderboard();
+      showView('viewLanding');
+      return;
+    }
+    if(warning) warning.style.display = 'none';
+    subscribeRealtime();
+
+    // Restore an admin session if Supabase Auth still has one
+    const { data: { session: authSession } } = await supabaseClient.auth.getSession();
+    if(authSession){
+      const isAdmin = await verifyAdmin();
+      if(isAdmin){
+        session = { type: 'admin', playerId: null };
+        await refreshAndRender();
+        renderHeaderRight();
+        showView('viewAdminDashboard');
+        return;
+      } else {
+        await supabaseClient.auth.signOut();
+      }
+    }
+
+    // Otherwise restore a player session if this browser previously logged in with a key
+    const storedPlayerId = Number(localStorage.getItem(PLAYER_SESSION_KEY)) || null;
+    if(storedPlayerId){
+      await loadAllData();
+      const p = playerById(storedPlayerId);
+      if(p && !p.suspended){
+        session = { type: 'player', playerId: storedPlayerId };
+        dataLoaded = true;
+        renderHeaderRight();
+        renderPlayerDashboard();
+        showView('viewPlayerDashboard');
+        checkAndShowIncomingRequests();
+        return;
+      } else {
+        localStorage.removeItem(PLAYER_SESSION_KEY);
+      }
+    }
+
+    await loadAllData();
+    dataLoaded = true;
+    renderLeaderboard();
+    showView('viewLanding');
+  }
+
+  async function verifyAdmin(){
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if(!user) return false;
+    const { data, error } = await supabaseClient.from('admins').select('user_id').eq('user_id', user.id).maybeSingle();
+    if(error){ console.error('Could not verify admin.', error); return false; }
+    return !!data;
+  }
+
+  // ---------------- Incoming-request popup (shown right when a player logs in) ----------------
+  function checkAndShowIncomingRequests(){
+    if(session.type !== 'player') return;
+    const incoming = matchRequests.filter(r => r.status === 'pending' && r.loser_id === session.playerId);
+    if(incoming.length === 0) return;
+    renderIncomingRequestPopup(incoming);
+    document.getElementById('incomingRequestOverlay').classList.add('open');
+  }
+
+  function renderIncomingRequestPopup(list){
+    const box = document.getElementById('incomingRequestList');
+    if(!list || list.length === 0){
+      closeIncomingRequestPopup();
+      return;
+    }
+    box.innerHTML = `
+      <p style="font-size:13px; color:var(--muted); margin-top:0;">
+        ${list.length === 1 ? 'You have 1 match claim waiting for your response.' : `You have ${list.length} match claims waiting for your response.`}
+      </p>
+      ${list.map(r => renderPendingCard(r, session.playerId)).join('')}
+    `;
+  }
+
+  function refreshIncomingRequestPopupIfOpen(){
+    const overlay = document.getElementById('incomingRequestOverlay');
+    if(!overlay || !overlay.classList.contains('open')) return;
+    const stillPending = matchRequests.filter(r => r.status === 'pending' && r.loser_id === session.playerId);
+    renderIncomingRequestPopup(stillPending);
+  }
+
+  function closeIncomingRequestPopup(){
+    document.getElementById('incomingRequestOverlay').classList.remove('open');
+  }
+
+  // ---------------- Player login/logout ----------------
+  async function playerLogin(){
+    const input = document.getElementById('playerKeyInput');
+    const errBox = document.getElementById('playerLoginError');
+    errBox.innerHTML = '';
+    const key = input.value.trim().toUpperCase();
+    if(!key){ input.focus(); return; }
+
+    const { data, error } = await supabaseClient.rpc('player_login_by_key', { p_key: key });
+    if(error){ console.error('Login check failed.', error); errBox.innerHTML = '<div class="form-error">Something went wrong. Try again.</div>'; return; }
+
+    if(!data || data.length === 0){
+      errBox.innerHTML = '<div class="form-error">No player found with that key. Double-check it and try again.</div>';
+      return;
+    }
+    const match = data[0];
+    if(match.suspended){
+      errBox.innerHTML = '<div class="form-error">This account is suspended. Contact your admin.</div>';
+      return;
+    }
+
+    session = { type: 'player', playerId: match.id };
+    localStorage.setItem(PLAYER_SESSION_KEY, String(match.id));
+    renderHeaderRight();
+    showView('viewPlayerDashboard');
+    try {
+      await refreshAndRender();
+    } catch(err){
+      console.error('Logged in, but loading your dashboard data failed. Try refreshing.', err);
+    }
+    checkAndShowIncomingRequests();
+  }
+
+  // ---------------- Player dashboard ----------------
+  let pdActiveTab = 'pending';
+  function switchPdTab(tab){
+    pdActiveTab = tab;
+    document.querySelectorAll('#viewPlayerDashboard .tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('#viewPlayerDashboard .tab-panel').forEach(p => p.classList.toggle('active', p.id === 'pd-tab-' + tab));
+  }
+
+  function renderPlayerDashboard(){
+    if(session.type !== 'player') return;
+    const p = playerById(session.playerId);
+    if(!p){ goLanding(); return; }
+
+    const s = statsFor(p.id);
+    document.getElementById('pdKey').textContent = p.player_key || '(hidden)';
+    document.getElementById('pdName').textContent = p.name;
+    document.getElementById('pdProfit').textContent = '+' + formatMoney(s.profit);
+    document.getElementById('pdLoss').textContent = '-' + formatMoney(s.loss);
+    const netEl = document.getElementById('pdNet');
+    netEl.textContent = (s.net >= 0 ? '+' : '-') + formatMoney(s.net);
+    const netCard = document.getElementById('pdNetCard');
+    netCard.classList.remove('pos','neg');
+    netCard.classList.add(s.net >= 0 ? 'pos' : 'neg');
+    document.getElementById('pdMatches').textContent = s.matches;
+    document.getElementById('pdPending').textContent = s.pending;
+    document.getElementById('pdCompleted').textContent = s.completed;
+
+    try { renderNetChart(p.id); } catch(err){ console.error('Net balance chart failed to render.', err); }
+    try { renderThisWeekCard(p.id); } catch(err){ console.error('This Week card failed to render.', err); }
+    try { renderAchievements(p.id, getCurrentCycle()); } catch(err){ console.error('Achievements failed to render.', err); }
+    try { renderActivityHeatmap(p.id); } catch(err){ console.error('Activity heatmap failed to render.', err); }
+
+    const opponentSelect = document.getElementById('pdOpponentSelect');
+    const opponents = players.filter(other => other.id !== p.id);
+    opponentSelect.innerHTML = opponents.length
+      ? opponents.map(o => `<option value="${o.id}">${o.name}</option>`).join('')
+      : '<option value="">No other players yet</option>';
+
+    const linkedIds = linksFor(p.id);
+    const linkedBox = document.getElementById('pdLinkedPlayers');
+    linkedBox.innerHTML = linkedIds.length
+      ? linkedIds.map(id => `<div class="linked-chip">${playerName(id)}</div>`).join('')
+      : '<span style="color:var(--muted); font-size:12px;">No linked players yet — ask your admin to link you with teammates.</span>';
+
+    const h2h = headToHeadFor(p.id);
+    document.getElementById('pdHeadToHeadEmpty').style.display = h2h.length ? 'none' : 'block';
+    document.getElementById('pdHeadToHeadBody').innerHTML = h2h.map(o => {
+      const netClass = o.net > 0 ? 'pos' : o.net < 0 ? 'neg' : '';
+      const netSign = o.net > 0 ? '+' : o.net < 0 ? '-' : '';
+      return `
+        <tr>
+          <td data-label="Opponent">${playerName(o.opponentId)}</td>
+          <td data-label="Matches">${o.matches}</td>
+          <td data-label="Profit" class="amount-cell pos">+${formatMoney(o.profit)}</td>
+          <td data-label="Loss" class="amount-cell neg">-${formatMoney(o.loss)}</td>
+          <td data-label="Net Balance" class="amount-cell ${netClass}">${netSign}${formatMoney(o.net)}</td>
+        </tr>
+      `;
+    }).join('');
+
+    const pendingReqs = matchRequests.filter(r => r.status === 'pending' && (r.winner_id === p.id || r.loser_id === p.id));
+    document.getElementById('pd-tab-pending').innerHTML = pendingReqs.length
+      ? pendingReqs.map(r => renderPendingCard(r, p.id)).join('')
+      : '<div class="empty-state">No pending requests.</div>';
+
+    const acceptedReqs = matchRequests.filter(r => r.status === 'accepted' && (r.winner_id === p.id || r.loser_id === p.id));
+    document.getElementById('pd-tab-accepted').innerHTML = acceptedReqs.length
+      ? acceptedReqs.map(r => renderResolvedCard(r, p.id)).join('')
+      : '<div class="empty-state">No accepted requests yet.</div>';
+
+    const rejectedReqs = matchRequests.filter(r => r.status === 'rejected' && (r.winner_id === p.id || r.loser_id === p.id));
+    document.getElementById('pd-tab-rejected').innerHTML = rejectedReqs.length
+      ? rejectedReqs.map(r => renderResolvedCard(r, p.id)).join('')
+      : '<div class="empty-state">No rejected requests.</div>';
+
+    const history = transactions.filter(t => t.winner_id === p.id || t.loser_id === p.id);
+    document.getElementById('pd-tab-history').innerHTML = history.length ? `
+      <table><thead><tr><th>Txn</th><th>Vs</th><th>Result</th><th>Amount</th><th>Confirmed</th></tr></thead>
+      <tbody>
+        ${history.map(t => {
+          const won = t.winner_id === p.id;
+          const otherId = won ? t.loser_id : t.winner_id;
+          return `<tr>
+            <td data-label="Txn">#${t.id}</td>
+            <td data-label="Vs">${playerName(otherId)}</td>
+            <td data-label="Result"><span class="badge ${won ? 'win' : 'loss'}">${won ? 'Won' : 'Lost'}</span></td>
+            <td data-label="Amount" class="amount-cell ${won ? 'pos' : 'neg'}">${won ? '+' : '-'}${formatMoney(t.amount)}</td>
+            <td data-label="Confirmed">${formatDateTime(t.confirmed_at)}</td>
+          </tr>`;
+        }).join('')}
+      </tbody></table>
+    ` : '<div class="empty-state">No confirmed transactions yet.</div>';
+
+    switchPdTab(pdActiveTab);
+    applyCollapsedState('pdHeadToHeadCollapsible');
+    renderNotifBadgeAndList();
+  }
+
+  function renderPendingCard(r, viewerId){
+    const iAmLoser = session.type === 'player' && session.playerId === r.loser_id;
+    const label = r.loser_id === viewerId
+      ? `${playerName(r.winner_id)} claims: "You won ${formatMoney(r.amount)} from me."`
+      : `Waiting for ${playerName(r.loser_id)} to confirm this ${formatMoney(r.amount)} claim.`;
+    return `
+      <div class="req-card">
+        <div class="req-top"><span>${label}</span><span class="badge pending">Pending</span></div>
+        <div class="req-meta">Logged ${formatDateTime(r.created_at)}${r.notes ? ' · ' + r.notes : ''}</div>
+        ${iAmLoser ? `
+          <div class="req-actions">
+            <button class="btn-success" onclick="acceptRequest(${r.id})">✅ Accept</button>
+            <button class="btn-danger" onclick="openRejectModal(${r.id})">❌ Reject</button>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  function renderResolvedCard(r, viewerId){
+    const won = r.winner_id === viewerId;
+    return `
+      <div class="req-card">
+        <div class="req-top">
+          <span>${won ? 'You claimed ' + formatMoney(r.amount) + ' from ' + playerName(r.loser_id) : playerName(r.winner_id) + ' claimed ' + formatMoney(r.amount) + ' from you'}</span>
+          <span class="badge ${r.status}">${r.status.charAt(0).toUpperCase() + r.status.slice(1)}</span>
+        </div>
+        <div class="req-meta">Logged ${formatDateTime(r.created_at)}${r.responded_at ? ' · Responded ' + formatDateTime(r.responded_at) : ''}</div>
+        ${r.reject_reason ? `<div class="req-reason">Reason: ${r.reject_reason}</div>` : ''}
+      </div>
+    `;
+  }
+
+  // ---------------- Player-submitted match log ----------------
+  async function playerLogMatch(){
+    if(session.type !== 'player'){ alert('Log in as a player first.'); return; }
+    const opponentId = Number(document.getElementById('pdOpponentSelect').value);
+    const amount = Number(document.getElementById('pdMatchAmountInput').value);
+    const notes = document.getElementById('pdMatchNotesInput').value.trim();
+
+    if(!opponentId){ alert('Choose who you played against.'); return; }
+    if(!amount || amount <= 0){ alert('Enter a valid amount.'); return; }
+
+    const { error } = await supabaseClient.rpc('player_log_match_request', {
+      p_acting_player_id: session.playerId,
+      p_opponent_id: opponentId,
+      p_amount: amount,
+      p_notes: notes || null
+    });
+    if(error){ console.error('Could not log match.', error); alert(error.message || 'Could not send this for confirmation.'); return; }
+
+    document.getElementById('pdMatchAmountInput').value = '';
+    document.getElementById('pdMatchNotesInput').value = '';
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  // ---------------- Accept / Reject ----------------
+  async function acceptRequest(requestId){
+    if(session.type !== 'player'){ alert('Log in as a player first.'); return; }
+    const req = matchRequests.find(r => r.id === requestId);
+    if(!req){ alert('This request no longer exists.'); return; }
+    if(req.status !== 'pending'){ alert('This request has already been ' + req.status + '.'); return; }
+    if(session.playerId !== req.loser_id){ alert('Only the loser can accept this claim.'); return; }
+
+    const { error } = await supabaseClient.rpc('accept_match_request', { p_request_id: requestId, p_acting_player_id: session.playerId });
+    if(error){ console.error('Could not accept request.', error); alert(error.message || 'Could not accept this request.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  function openRejectModal(requestId){
+    if(session.type !== 'player'){ alert('Log in as a player first.'); return; }
+    const req = matchRequests.find(r => r.id === requestId);
+    if(!req){ alert('This request no longer exists.'); return; }
+    if(req.status !== 'pending'){ alert('This request has already been ' + req.status + '.'); return; }
+    if(session.playerId !== req.loser_id){ alert('Only the loser can reject this claim.'); return; }
+    pendingRejectId = requestId;
+    document.getElementById('rejectReasonInput').value = '';
+    document.getElementById('rejectModalOverlay').classList.add('open');
+  }
+
+  function closeRejectModal(){
+    pendingRejectId = null;
+    document.getElementById('rejectModalOverlay').classList.remove('open');
+  }
+
+  async function confirmReject(){
+    if(!pendingRejectId) return;
+    const reason = document.getElementById('rejectReasonInput').value.trim() || null;
+    const { error } = await supabaseClient.rpc('reject_match_request', { p_request_id: pendingRejectId, p_acting_player_id: session.playerId, p_reason: reason });
+    closeRejectModal();
+    if(error){ console.error('Could not reject request.', error); alert(error.message || 'Could not reject this request.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  // ---------------- Notifications ----------------
+  function renderNotifBadgeAndList(){
+    const badge = document.getElementById('notifBadge');
+    const list = document.getElementById('notifList');
+    if(!badge || !list || session.type !== 'player') return;
+
+    const mine = notifications.filter(n => n.player_id === session.playerId);
+    const unreadCount = mine.filter(n => !n.is_read).length;
+    if(unreadCount > 0){ badge.style.display = 'flex'; badge.textContent = unreadCount > 99 ? '99+' : unreadCount; }
+    else { badge.style.display = 'none'; }
+
+    list.innerHTML = mine.length
+      ? mine.map(n => `<div class="notif-item ${n.is_read ? '' : 'unread'}"><div class="msg">${n.message}</div><div class="meta">${formatDateTime(n.created_at)}</div></div>`).join('')
+      : '<div class="notif-item"><span class="msg">No notifications yet.</span></div>';
+  }
+
+  function toggleNotifPanel(){
+    const panel = document.getElementById('notifPanel');
+    const bell = document.getElementById('notifBellBtn');
+    if(!panel || !bell) return;
+
+    const willOpen = !panel.classList.contains('open');
+    panel.classList.toggle('open', willOpen);
+    if(!willOpen){
+      panel.style.top = '';
+      panel.style.left = '';
+      panel.style.right = '';
+      panel.style.width = '';
+      return;
+    }
+
+    // On phones, anchor the menu to the bell but clamp it inside the visible screen.
+    if(window.matchMedia('(max-width: 640px)').matches){
+      const rect = bell.getBoundingClientRect();
+      const maxHeight = Math.min(420, window.innerHeight * 0.6);
+      const panelHeight = Math.min(panel.scrollHeight, maxHeight);
+      const top = Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - panelHeight - 12));
+      panel.style.position = 'fixed';
+      panel.style.top = `${top}px`;
+      panel.style.left = '12px';
+      panel.style.right = '12px';
+      panel.style.width = 'auto';
+    } else {
+      panel.style.position = '';
+      panel.style.top = '';
+      panel.style.left = '';
+      panel.style.right = '';
+      panel.style.width = '';
+    }
+  }
+
+  document.addEventListener('click', (e) => {
+    const panel = document.getElementById('notifPanel');
+    const bell = document.getElementById('notifBellBtn');
+    if(panel && panel.classList.contains('open') && !panel.contains(e.target) && e.target !== bell){
+      panel.classList.remove('open');
+    }
+  });
+
+  async function markAllNotificationsRead(){
+    if(session.type !== 'player') return;
+    const unreadIds = notifications.filter(n => n.player_id === session.playerId && !n.is_read).map(n => n.id);
+    if(unreadIds.length === 0) return;
+    const { error } = await supabaseClient.from('notifications').update({ is_read: true }).in('id', unreadIds);
+    if(error){ console.error('Could not mark notifications read.', error); return; }
+    await refreshAndRender();
+  }
+
+  // ---------------- Admin login/logout ----------------
+  async function adminLogin(){
+    const errBox = document.getElementById('adminLoginError');
+    errBox.innerHTML = '';
+    const email = document.getElementById('adminEmailInput').value.trim();
+    const password = document.getElementById('adminPasswordInput').value;
+    if(!email || !password){ errBox.innerHTML = '<div class="form-error">Enter both email and password.</div>'; return; }
+
+    const { error: signInError } = await supabaseClient.auth.signInWithPassword({ email, password });
+    if(signInError){
+      errBox.innerHTML = '<div class="form-error">' + signInError.message + '</div>';
+      return;
+    }
+
+    const isAdmin = await verifyAdmin();
+    if(!isAdmin){
+      await supabaseClient.auth.signOut();
+      errBox.innerHTML = '<div class="form-error">This account is not registered as an admin.</div>';
+      return;
+    }
+
+    session = { type: 'admin', playerId: null };
+    document.getElementById('adminPasswordInput').value = '';
+    renderHeaderRight();
+    showView('viewAdminDashboard');
+    try {
+      await refreshAndRender();
+    } catch(err){
+      console.error('Logged in, but loading admin dashboard data failed. Try refreshing.', err);
+    }
+  }
+
+  async function adminLogout(){
+    await supabaseClient.auth.signOut();
+    goLanding();
+  }
+
+  // ---------------- Admin dashboard rendering ----------------
+  function renderAdminDashboard(){
+    if(session.type !== 'admin') return;
+
+    document.getElementById('adTotalPlayers').textContent = players.length;
+    document.getElementById('adActivePlayers').textContent = players.filter(p => !p.suspended).length;
+    document.getElementById('adSuspendedPlayers').textContent = players.filter(p => p.suspended).length;
+    document.getElementById('adTotalMatches').textContent = transactions.length;
+
+    // Pending match requests — club-wide, not just this admin's own matches
+    const pendingReqs = matchRequests
+      .filter(r => r.status === 'pending')
+      .slice()
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    document.getElementById('adPendingCount').textContent = pendingReqs.length;
+    document.getElementById('adPendingEmpty').style.display = pendingReqs.length ? 'none' : 'block';
+    document.getElementById('adPendingBody').innerHTML = pendingReqs.map(r => `
+      <tr>
+        <td data-label="Claimed Winner">${playerName(r.winner_id)}</td>
+        <td data-label="Awaiting">${playerName(r.loser_id)}</td>
+        <td data-label="Amount" class="amount-cell">${formatMoney(r.amount)}</td>
+        <td data-label="Notes">${r.notes ? r.notes : '<span style="color:var(--muted);">—</span>'}</td>
+        <td data-label="Requested">${formatDateTime(r.created_at)}</td>
+      </tr>
+    `).join('');
+
+    // Playing-week settings
+    const weekLengthInput = document.getElementById('adWeekLengthInput');
+    if(weekLengthInput && document.activeElement !== weekLengthInput){
+      weekLengthInput.value = appSettings.week_length_days;
+    }
+    const cycle = getCurrentCycle();
+    const infoEl = document.getElementById('adWeekCurrentInfo');
+    if(infoEl){
+      infoEl.textContent = `Current week: ${formatCycleRange(cycle)} · resets in ${cycle.daysRemaining} day${cycle.daysRemaining === 1 ? '' : 's'}`;
+    }
+    const warnEl = document.getElementById('adWeekConfigWarning');
+    if(warnEl) warnEl.style.display = appSettingsAvailable ? 'none' : 'block';
+
+    // Match log dropdowns
+    const options = players.map(p => `<option value="${p.id}">${p.name} (${p.player_key || 'key hidden'})</option>`).join('');
+    document.getElementById('adMatchWinnerSelect').innerHTML = options;
+    document.getElementById('adMatchLoserSelect').innerHTML = options;
+    if(players.length > 1) document.getElementById('adMatchLoserSelect').selectedIndex = 1;
+    document.getElementById('adLinkPlayerA').innerHTML = options;
+    document.getElementById('adLinkPlayerB').innerHTML = options;
+    if(players.length > 1) document.getElementById('adLinkPlayerB').selectedIndex = 1;
+
+    // Players table
+    const body = document.getElementById('adPlayersBody');
+    document.getElementById('adPlayersEmpty').style.display = players.length ? 'none' : 'block';
+    body.innerHTML = players.map(p => {
+      const s = statsFor(p.id);
+      return `
+        <tr>
+          <td data-label="Name">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <div class="avatar" style="width:30px;height:30px;font-size:11px;">${initials(p.name)}</div>
+              <div><div style="font-weight:600;">${p.name}</div><div style="font-size:11px; color:var(--muted);">${p.role || 'Player'}</div></div>
+            </div>
+          </td>
+          <td data-label="Key"><span class="player-key-tag">${p.player_key || '(hidden)'}</span></td>
+          <td data-label="Status"><span class="badge ${p.suspended ? 'suspended' : 'active'}">${p.suspended ? 'Suspended' : 'Active'}</span></td>
+          <td data-label="Matches">${s.matches}</td>
+          <td class="row-actions" data-label="">
+            <button class="btn-warn" onclick="adminToggleSuspend(${p.id}, ${!p.suspended})">${p.suspended ? 'Reactivate' : 'Suspend'}</button>
+            <button class="btn-danger" onclick="adminDeletePlayer(${p.id})">Delete</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Links table
+    const linksBody = document.getElementById('adLinksBody');
+    // Show each unique pair once (links are stored bidirectionally)
+    const seenPairs = new Set();
+    const uniqueLinks = playerLinks.filter(l => {
+      const key = [l.player_id, l.linked_player_id].sort((a,b) => a-b).join('-');
+      if(seenPairs.has(key)) return false;
+      seenPairs.add(key);
+      return true;
+    });
+    document.getElementById('adLinksEmpty').style.display = uniqueLinks.length ? 'none' : 'block';
+    linksBody.innerHTML = uniqueLinks.map(l => `
+      <tr>
+        <td data-label="Player A">${playerName(l.player_id)}</td>
+        <td data-label="Player B">${playerName(l.linked_player_id)}</td>
+        <td class="row-actions" data-label=""><button class="btn-danger" onclick="adminRemoveLink(${l.player_id}, ${l.linked_player_id})">Unlink</button></td>
+      </tr>
+    `).join('');
+
+    // Transactions ledger
+    const txnBody = document.getElementById('adTxnBody');
+    document.getElementById('adTxnEmpty').style.display = transactions.length ? 'none' : 'block';
+    txnBody.innerHTML = transactions.map(t => `
+      <tr>
+        <td data-label="Txn">#${t.id}</td>
+        <td data-label="Winner">${playerName(t.winner_id)}</td>
+        <td data-label="Loser">${playerName(t.loser_id)}</td>
+        <td data-label="Amount" class="amount-cell pos">+${formatMoney(t.amount)}</td>
+        <td data-label="Logged">${formatDateTime(t.created_at)}</td>
+        <td data-label="Confirmed">${formatDateTime(t.confirmed_at)}</td>
+      </tr>
+    `).join('');
+  }
+
+  // ---------------- Admin actions ----------------
+  async function adminSaveWeekLength(){
+    const input = document.getElementById('adWeekLengthInput');
+    const days = Math.round(Number(input.value));
+    if(!days || days < 1 || days > 60){
+      alert('Enter a number of days between 1 and 60.');
+      return;
+    }
+    if(!appSettingsAvailable){
+      alert("This feature needs one extra setup step in Supabase first — see the note below the Save button.");
+      return;
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const { error } = await supabaseClient.from('app_settings')
+      .update({ week_length_days: days, week_anchor_date: todayStr, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+    if(error){ console.error('Could not save the playing week length.', error); alert('Could not save this setting.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  // Ends the current cycle right now (regardless of how many days are left in it) and
+  // starts a new one today with the SAME week length — unlike adminSaveWeekLength,
+  // this never changes week_length_days. Same underlying mechanism as a natural
+  // rollover (moving week_anchor_date forward), so it inherits the same guarantee:
+  // lifetime profit/loss and the activity heatmap read full history and are
+  // completely unaffected; only "This Week" and this week's achievements reset.
+  async function adminForceEndWeek(){
+    if(!appSettingsAvailable){
+      alert("This feature needs one extra setup step in Supabase first — see the note below.");
+      return;
+    }
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if(appSettings.week_anchor_date === todayStr){
+      alert("The current week already started today, so there's nothing to end early.");
+      return;
+    }
+    const cycle = getCurrentCycle();
+    const ok = confirm(
+      `End the current playing week now (${formatCycleRange(cycle)}) and start a fresh one today?\n\n` +
+      `Only "This Week" and this week's achievement badges reset for every player. ` +
+      `Lifetime profit/loss and the activity calendar are never touched.`
+    );
+    if(!ok) return;
+
+    const { error } = await supabaseClient.from('app_settings')
+      .update({ week_anchor_date: todayStr, updated_at: new Date().toISOString() })
+      .eq('id', 1);
+    if(error){ console.error('Could not force-end the current week.', error); alert('Could not end the current week.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  async function adminCreatePlayer(){
+    const nameInput = document.getElementById('adNewPlayerName');
+    const roleInput = document.getElementById('adNewPlayerRole');
+    const name = nameInput.value.trim();
+    const role = roleInput.value.trim() || 'Player';
+    if(!name){ nameInput.focus(); return; }
+
+    const { data, error } = await supabaseClient.from('players').insert({ name, role }).select().single();
+    if(error){ console.error('Could not create player.', error); alert('Could not create this player.'); return; }
+
+    nameInput.value = '';
+    roleInput.value = '';
+    showSavedIndicator();
+    await refreshAndRender();
+
+    document.getElementById('revealedKeyText').textContent = data.player_key;
+    document.getElementById('keyRevealOverlay').classList.add('open');
+  }
+  function closeKeyReveal(){ document.getElementById('keyRevealOverlay').classList.remove('open'); }
+
+  async function adminToggleSuspend(id, suspend){
+    const { error } = await supabaseClient.from('players').update({ suspended: suspend }).eq('id', id);
+    if(error){ console.error('Could not update suspension.', error); alert('Could not update this player.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  async function adminDeletePlayer(id){
+    const hasHistory = transactions.some(t => t.winner_id === id || t.loser_id === id);
+    if(hasHistory){ alert("Can't delete this player — they're part of confirmed transaction history, which is permanent."); return; }
+    if(!confirm('Delete this player? This also removes their links and any pending/rejected requests.')) return;
+
+    const { error } = await supabaseClient.rpc('admin_delete_player', { p_player_id: id });
+    if(error){ console.error('Could not delete player.', error); alert(error.message || 'Could not delete this player.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  async function adminCreateLink(){
+    const a = Number(document.getElementById('adLinkPlayerA').value);
+    const b = Number(document.getElementById('adLinkPlayerB').value);
+    if(!a || !b || a === b){ alert('Choose two different players.'); return; }
+
+    const { error } = await supabaseClient.from('player_links').insert([
+      { player_id: a, linked_player_id: b },
+      { player_id: b, linked_player_id: a }
+    ]);
+    if(error && error.code !== '23505'){ console.error('Could not create link.', error); alert('Could not link these players.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  async function adminRemoveLink(a, b){
+    const { error } = await supabaseClient
+      .from('player_links')
+      .delete()
+      .or(`and(player_id.eq.${a},linked_player_id.eq.${b}),and(player_id.eq.${b},linked_player_id.eq.${a})`);
+    if(error){ console.error('Could not remove link.', error); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  async function adminLogMatch(){
+    if(players.length < 2){ alert('You need at least two players to log a match.'); return; }
+    const winnerId = Number(document.getElementById('adMatchWinnerSelect').value);
+    const loserId = Number(document.getElementById('adMatchLoserSelect').value);
+    const amount = Number(document.getElementById('adMatchAmountInput').value);
+    const notes = document.getElementById('adMatchNotesInput').value.trim();
+
+    if(winnerId === loserId){ alert('Winner and loser must be different players.'); return; }
+    if(!amount || amount <= 0){ alert('Enter a valid amount.'); return; }
+
+    const { data, error } = await supabaseClient.from('match_requests').insert({
+      winner_id: winnerId, loser_id: loserId, amount, notes: notes || null, status: 'pending'
+    }).select().single();
+    if(error){ console.error('Could not create match request.', error); alert('Could not send this for confirmation.'); return; }
+
+    const recipientIds = new Set([loserId, ...linksFor(winnerId), ...linksFor(loserId)]);
+    const notifRows = Array.from(recipientIds).map(pid => ({
+      player_id: pid,
+      match_request_id: data.id,
+      type: 'request',
+      message: pid === loserId
+        ? `${playerName(winnerId)} claims: "You won ${formatMoney(amount)} from me."`
+        : `${playerName(winnerId)} sent a ${formatMoney(amount)} match claim to ${playerName(loserId)}.`
+    }));
+    if(notifRows.length){
+      const { error: notifErr } = await supabaseClient.from('notifications').insert(notifRows);
+      if(notifErr) console.error('Could not create notifications.', notifErr);
+    }
+
+    document.getElementById('adMatchAmountInput').value = '';
+    document.getElementById('adMatchNotesInput').value = '';
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  async function adminResetData(){
+    if(!confirm("This permanently erases EVERY player's profit/loss — all confirmed transactions, match requests, and notifications, for everyone. Player profiles (names and keys) are kept. This cannot be undone. Continue?")) return;
+    const { error } = await supabaseClient.rpc('reset_club_data');
+    if(error){ console.error('Could not reset data.', error); alert(error.message || 'Could not reset data.'); return; }
+    showSavedIndicator();
+    await refreshAndRender();
+  }
+
+  initApp();
+  renderWeekCountdown();
+  setInterval(() => { try { renderWeekCountdown(); } catch(err){ console.error('Week countdown tick failed.', err); } }, 1000);
+</script>
+
+</body>
+</html>
