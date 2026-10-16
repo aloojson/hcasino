@@ -2191,7 +2191,7 @@
   // ---------------- Message notifications (free web push) ----------------
   // Setup: (1) open vapid_keys.html once and paste its PUBLIC key between the quotes below, (2) do the Supabase steps.
   // Leave it empty to switch the feature off. Notifications only say who wrote — never the (encrypted) message.
-  const CHAT_PUSH_PUBLIC_KEY = '';
+  const CHAT_PUSH_PUBLIC_KEY = 'BA0XP1ljkhmKU3RHlaZ2SvptAGNJzGGO9Xqeby9l8vKotiIZ6vD4oxl7K0kYtsHIbKOzs2i1dRMfKgoGtZa1keA';
   let chatWantOpen = null; // a chat to open once chat is unlocked (set when a notification is tapped)
 
   const chatPushSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window && window.isSecureContext;
